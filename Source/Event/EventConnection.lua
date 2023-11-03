@@ -7,10 +7,13 @@ EventConnection.__index = EventConnection
 EventConnection.className = "EventConnection"
 
 function EventConnection.new(event: Types.Event): Types.EventConnection
+	assert(event ~= nil and type(event) == "table" and event.className == "Event", "event must be an Event")
+
 	local self = setmetatable({
 		_Event = event,
 	}, EventConnection)
-	return self :: Types.EventConnection
+
+	return self
 end
 
 function EventConnection:Destroy()

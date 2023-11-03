@@ -19,6 +19,9 @@ NetworkEvent.__index = NetworkEvent
 NetworkEvent.className = "NetworkEvent"
 
 function NetworkEvent.new(name: string, parent: Instance): NetworkEvent
+	assert(name ~= nil and type(name) == "string", "name must be a string")
+	assert(parent ~= nil and typeof(parent) == "Instance", "parent must be an Instance")
+
 	local self = setmetatable({
 		_Name = name,
 		_Parent = parent,
@@ -50,11 +53,13 @@ end
 function NetworkEvent:_ConnectRemoteEvent()
 	if RunService:IsServer() then
 		local remoteEvent = self._Parent:FindFirstChild(self._Name)
-		if not remoteEvent then
-			remoteEvent = Instance.new("RemoteEvent")
-			remoteEvent.Name = self._Name
-			remoteEvent.Parent = self._Parent
+		if remoteEvent ~= nil then
+			error("NetworkEvent can't create a RemoteEvent because an Instance with the name '" .. self._Name .. "' already exists in " .. self._Parent:GetFullName())
 		end
+
+		remoteEvent = Instance.new("RemoteEvent")
+		remoteEvent.Name = self._Name
+		remoteEvent.Parent = self._Parent
 
 		self._RemoteEventConnection = remoteEvent.OnServerEvent:Connect(function(player, ...)
 			self._Event:Fire(player, ...)
@@ -63,8 +68,8 @@ function NetworkEvent:_ConnectRemoteEvent()
 		self._RemoteEvent = remoteEvent
 	else
 		local remoteEvent: RemoteEvent = self._Parent:FindFirstChild(self._Name)
-		if not remoteEvent then
-			error("NetworkEvent " .. self._Name .. " not found in " .. self._Parent:GetFullName() .. "- A NetworkEvent with matching properties should be initialized on the server first")
+		if remoteEvent == nil then
+			error("NetworkEvent can't find a RemoteEvent with the name '" .. self._Name .. "' in " .. self._Parent:GetFullName() .. " - A NetworkEvent with matching properties should be initialized on the server first")
 		end
 
 		self._RemoteEventConnection = remoteEvent.OnClientEvent:Connect(function(...)
@@ -76,6 +81,8 @@ function NetworkEvent:_ConnectRemoteEvent()
 end
 
 function NetworkEvent:Connect(callback: (...any) -> ()): Event.EventConnection
+	assert(callback ~= nil and type(callback) == "function", "callback must be a function")
+
 	return self._Event:Connect(callback)
 end
 
@@ -88,6 +95,8 @@ function NetworkEvent:FireServer(...: any)
 end
 
 function NetworkEvent:FireClient(player: Player, ...: any)
+	assert(player ~= nil and player:IsA("Player"), "player must be a Player")
+
 	if RunService:IsClient() then
 		error("FireClient(player, ...) called on the client")
 	end
@@ -96,6 +105,8 @@ function NetworkEvent:FireClient(player: Player, ...: any)
 end
 
 function NetworkEvent:FireFilteredClients(predicate: (player: Player) -> boolean, ...: any)
+	assert(predicate ~= nil and type(predicate) == "function", "predicate must be a function")
+
 	if RunService:IsClient() then
 		error("FireFilteredClients(predicate, ...) called on the client")
 	end

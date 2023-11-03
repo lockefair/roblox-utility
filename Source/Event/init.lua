@@ -46,13 +46,18 @@ function Event:_ConnectBindableEvent()
 end
 
 function Event:Connect(callback: (...any) -> ()): Types.EventConnection
+	assert(callback ~= nil and type(callback) == "function", "callback must be a function")
+
 	local eventConnection = EventConnection.new(self)
 	self._Connections[eventConnection] = eventConnection
 	self._Callbacks[eventConnection] = callback
+
 	return eventConnection
 end
 
 function Event:Disconnect(eventConnection: Types.EventConnection)
+	assert(eventConnection ~= nil and type(eventConnection) == "table" and eventConnection.className == "EventConnection", "eventConnection must be an EventConnection")
+
 	if self._Connections[eventConnection] then
 		eventConnection:Destroy()
 		self._Connections[eventConnection] = nil
