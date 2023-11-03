@@ -23,4 +23,6 @@ function EventConnection:Disconnect()
 	end
 end
 
+table.freeze(EventConnection)
+
 return EventConnection

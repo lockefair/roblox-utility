@@ -65,4 +65,6 @@ function Event:Fire(...: any)
 	self._BindableEvent:Fire()
 end
 
+table.freeze(Event)
+
 return Event
