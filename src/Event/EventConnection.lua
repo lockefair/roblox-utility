@@ -11,6 +11,7 @@ function EventConnection.new(event: Types.Event): Types.EventConnection
 
 	local self = setmetatable({
 		_Event = event,
+		Connected = true
 	}, EventConnection)
 
 	return self
@@ -18,12 +19,14 @@ end
 
 function EventConnection:Destroy()
 	self._Event = nil
+	self.Connected = nil
 end
 
 function EventConnection:Disconnect()
 	if self._Event then
 		self._Event:Disconnect(self)
 	end
+	self.Connected = false
 end
 
 table.freeze(EventConnection)

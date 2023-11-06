@@ -3,6 +3,19 @@ local Players = game:GetService("Players")
 
 local Event = require(script.Parent.Event)
 
+--[=[
+	@within NetworkEvent
+	@interface EventConnection
+	@field Connected boolean
+	@field Disconnect () -> ()
+	An interface that respresents a connection to an event. An object which conforms to this interface is returned by the `NetworkEvent:Connect` method.
+]=]
+export type EventConnection = Event.EventConnection
+
+--[=[
+	@within NetworkEvent
+	@prop className string
+]=]
 export type NetworkEvent = {
 	className: string,
 	new: (name: string, parent: Instance) -> NetworkEvent,
@@ -14,10 +27,37 @@ export type NetworkEvent = {
 	FireAllClients: (self: NetworkEvent, ...any) -> ()
 }
 
+--[=[
+	@class NetworkEvent
+	An object that wraps Roblox's `RemoteEvent`. It can be used to fire events between the server and client
+	without having to manage `RemoteEvent` lifecycles manually – initialization and deinitialization are handled for you.
+
+	:::note
+	Network events are intended to be paired. A `NetworkEvent` object should be initialized on the server first, then on the client, otherwise an error will occur.
+	:::
+
+	```lua
+	-- Server
+	local serverEvent = NetworkEvent.new("MyNetworkEvent", workspace)
+
+	-- Client
+	local clientEvent = NetworkEvent.new("MyNetworkEvent", workspace)
+	clientEvent:Connect(function(...)
+		print("The event fired and passed the values:", ...) -- 1, 2, 3
+	end)
+
+	-- Server
+	serverEvent:FireClient(player, 1, 2, 3)
+	```
+]=]
 local NetworkEvent = {}
 NetworkEvent.__index = NetworkEvent
 NetworkEvent.className = "NetworkEvent"
 
+--[=[
+	@return NetworkEvent
+	Constructs a new `NetworkEvent` object
+]=]
 function NetworkEvent.new(name: string, parent: Instance): NetworkEvent
 	assert(name ~= nil and type(name) == "string", "name must be a string")
 	assert(parent ~= nil and typeof(parent) == "Instance", "parent must be an Instance")
@@ -35,6 +75,9 @@ function NetworkEvent.new(name: string, parent: Instance): NetworkEvent
 	return self
 end
 
+--[=[
+	Deconstructs the `NetworkEvent` object
+]=]
 function NetworkEvent:Destroy()
 	self._Name = nil
 	self._Parent = nil
@@ -44,10 +87,10 @@ function NetworkEvent:Destroy()
 		self._RemoteEventConnection:Disconnect()
 		self._RemoteEventConnection = nil
 	end
-	if self._RemoteEvent then
+	if RunService:IsServer() and self._RemoteEvent then
 		self._RemoteEvent:Destroy()
-		self._RemoteEvent = nil
 	end
+	self._RemoteEvent = nil
 end
 
 function NetworkEvent:_ConnectRemoteEvent()
@@ -80,12 +123,25 @@ function NetworkEvent:_ConnectRemoteEvent()
 	end
 end
 
+--[=[
+	@return EventConnection
+	Connects a callback to the `NetworkEvent` which is invoked when
+	the event is fired.
+]=]
 function NetworkEvent:Connect(callback: (...any) -> ()): Event.EventConnection
 	assert(callback ~= nil and type(callback) == "function", "callback must be a function")
 
 	return self._Event:Connect(callback)
 end
 
+--[=[
+	@client
+	Fires the `NetworkEvent` on the client, passing the given arguments to the server
+
+	```lua
+	event:FireServer("Hello, World!")
+	```
+]=]
 function NetworkEvent:FireServer(...: any)
 	if RunService:IsServer() then
 		error("FireServer(...) called on the server")
@@ -94,6 +150,14 @@ function NetworkEvent:FireServer(...: any)
 	self._RemoteEvent:FireServer(...)
 end
 
+--[=[
+	@server
+	Fires the `NetworkEvent` on the server, passing the given arguments to the players client
+
+	```lua
+	event:FireClient(player, "Hello, World!")
+	```
+]=]
 function NetworkEvent:FireClient(player: Player, ...: any)
 	assert(player ~= nil and player:IsA("Player"), "player must be a Player")
 
@@ -104,6 +168,16 @@ function NetworkEvent:FireClient(player: Player, ...: any)
 	self._RemoteEvent:FireClient(player, ...)
 end
 
+--[=[
+	@server
+	Fires the `NetworkEvent` on the server, passing the given arguments to player clients that pass the given predicate check
+
+	```lua
+	event:FireFilteredClients(function(player)
+		return player.Team == game.Teams.Heroes
+	end, "Hello, World!")
+	```
+]=]
 function NetworkEvent:FireFilteredClients(predicate: (player: Player) -> boolean, ...: any)
 	assert(predicate ~= nil and type(predicate) == "function", "predicate must be a function")
 
@@ -118,6 +192,14 @@ function NetworkEvent:FireFilteredClients(predicate: (player: Player) -> boolean
 	end
 end
 
+--[=[
+	@server
+	Fires the `NetworkEvent` on the server, passing the given arguments to all clients
+
+	```lua
+	event:FireAllClients("Hello, World!")
+	```
+]=]
 function NetworkEvent:FireAllClients(...: any)
 	if RunService:IsClient() then
 		error("FireAllClients(...) called on the client")
