@@ -9,6 +9,13 @@ local Event = require(script.Parent.Event)
 	@field Connected boolean
 	@field Disconnect () -> ()
 	An interface that respresents a connection to an event. An object which conforms to this interface is returned by the `NetworkEvent:Connect` method.
+	This `EventConnection` object can be used to disconnect the callback from the event. A connection doesn't need to be destroyed after being disconnected.
+
+	```lua
+	print(connection.Connected) -- true
+	connection:Disconnect()
+	print(connection.Connected) -- false
+	```
 ]=]
 export type EventConnection = Event.EventConnection
 
