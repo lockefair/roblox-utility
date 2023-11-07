@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkdocs=self.webpackChunkdocs||[]).push([[713],{63891:s=>{s.exports=JSON.parse('{"sourceUrl":"https://github.com/lockefair/roblox-utility/blob/main","baseUrl":"/roblox-utility/","classOrder":[],"apiCategories":[]}')}}]);
