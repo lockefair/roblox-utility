@@ -1,0 +1,9 @@
+gitRepoUrl = "https://github.com/lockefair/roblox-utility"
+gitSourceBranch = "main"
+
+[home]
+enabled = true
+includeReadme = true
+
+[docusaurus]
+tagline = "A collection of utility modules for Roblox"

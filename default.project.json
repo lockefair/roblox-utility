@@ -4,23 +4,23 @@
 		"$className": "DataModel",
 		"ReplicatedStorage": {
 			"$className": "ReplicatedStorage",
-			"$path": "Tests/Shared",
+			"$path": "tests/Shared",
 			"Packages": {
 				"$className": "Folder",
 				"Utility": {
-					"$path": "Source"
+					"$path": "src"
 				}
 			}
 		},
 		"ServerScriptService": {
 			"$className": "ServerScriptService",
-			"$path": "Tests/Server"
+			"$path": "tests/Server"
 		},
 		"StarterPlayer": {
 			"$className": "StarterPlayer",
 			"StarterPlayerScripts": {
 				"$className": "StarterPlayerScripts",
-				"$path": "Tests/Client"
+				"$path": "tests/Client"
 			}
 		}
 	}

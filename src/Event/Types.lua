@@ -1,5 +1,6 @@
 export type EventConnection = {
 	className: string,
+	Connected: boolean,
 	new: (event: Event) -> EventConnection,
 	Destroy: (self: EventConnection) -> (),
 	Disconnect: (self: EventConnection) -> ()
