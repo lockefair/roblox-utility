@@ -1,0 +1,11 @@
+[package]
+name = "lockefair/network"
+description = "Networking utility for Roblox"
+version = "0.1.0"
+license = "MIT"
+authors = ["Joe Lunn <joe@noctua.dev>"]
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+[dependencies]
+Event = "lockefair/event@0.1.0"
