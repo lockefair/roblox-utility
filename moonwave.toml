@@ -6,4 +6,12 @@ enabled = true
 includeReadme = true
 
 [docusaurus]
-tagline = "A collection of utility modules for Roblox"
+tagline = "A collection of object-orientated utility modules for Roblox"
+
+[[classOrder]]
+section = "Event"
+classes = ["Event", "EventConnection"]
+
+[[classOrder]]
+section = "Network"
+classes = ["Network", "NetworkEvent", "NetworkRequest", "NetworkValue"]

@@ -22,6 +22,7 @@ export type EventConnection = Event.EventConnection
 --[=[
 	@within NetworkEvent
 	@prop className string
+	Static property that defines the class name of the `NetworkEvent` object
 ]=]
 export type NetworkEvent = {
 	className: string,

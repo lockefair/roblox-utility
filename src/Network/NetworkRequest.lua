@@ -3,6 +3,7 @@ local RunService = game:GetService("RunService")
 --[=[
 	@within NetworkRequest
 	@prop className string
+	Static property that defines the class name of the `NetworkRequest` object
 ]=]
 export type NetworkRequest = {
 	className: string,

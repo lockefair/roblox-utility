@@ -6,7 +6,13 @@ local NetworkEvent = require(script.Parent.NetworkEvent)
 --[=[
 	@within NetworkValue
 	@prop className string
+	Static property that defines the class name of the `NetworkValue` object
+]=]
+
+--[=[
+	@within NetworkValue
 	@prop Changed Event
+	Defines the `Event` object that is fired when the value of the `NetworkValue` object changes
 ]=]
 export type NetworkValue = {
 	className: string,

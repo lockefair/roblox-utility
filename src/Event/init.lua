@@ -8,7 +8,7 @@ local EventConnection = require(script.EventConnection)
 	@field Disconnect () -> ()
 	An interface that respresents a connection to an event. An object which conforms to this interface is returned by the `Event:Connect` method.
 	This `EventConnection` object can be used to disconnect the callback from the event. A connection doesn't need to be destroyed after being disconnected.
-	
+
 	```lua
 	print(connection.Connected) -- true
 	connection:Disconnect()
@@ -20,6 +20,7 @@ export type EventConnection = Types.EventConnection
 --[=[
 	@within Event
 	@prop className string
+	Static property that defines the class name of the `NetworkEvent` object
 ]=]
 export type Event = Types.Event
 
