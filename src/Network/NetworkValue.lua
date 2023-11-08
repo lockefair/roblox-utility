@@ -1,15 +1,16 @@
 local RunService = game:GetService("RunService")
 
-local Event = require(script.Parent.Event)
+local Event = require(script.Parent.Packages.Event)
 local NetworkEvent = require(script.Parent.NetworkEvent)
 
 --[=[
 	@within NetworkValue
 	@prop className string
+	@prop Changed Event
 ]=]
 export type NetworkValue = {
 	className: string,
-	ValueChanged: Event.Event,
+	Changed: Event.Event,
 	new: (name: string, parent: Instance, value: any?) -> NetworkValue,
 	Destroy: (self: NetworkValue) -> (),
 	GetValue: (self: NetworkValue, player: Player?) -> any?,
@@ -34,7 +35,7 @@ export type NetworkValue = {
 	local clientHealthValue = NetworkValue.new("PlayerHealth", workspace)
 
 	print("The players health is:", clientHealthValue:GetValue()) -- 100
-	clientHealthValue.ValueChanged:Connect(function(value)
+	clientHealthValue.Changed:Connect(function(value)
 		print("The players health changed to:", value)
 	end)
 	```
@@ -59,7 +60,7 @@ function NetworkValue.new(name: string, parent: Instance, value: any?): NetworkV
 		_PlayerValues = {},
 		_NetworkEvent = NetworkEvent.new(name, parent),
 		_NetworkEventConnection = nil,
-		ValueChanged = Event.new(),
+		Changed = Event.new(),
 	}, NetworkValue)
 
 	self:_ConnectNetworkEvent()
@@ -77,8 +78,8 @@ function NetworkValue:Destroy()
 	self._NetworkEventConnection = nil
 	self._NetworkEvent:Destroy()
 	self._NetworkEvent = nil
-	self.ValueChanged:Destroy()
-	self.ValueChanged = nil
+	self.Changed:Destroy()
+	self.Changed = nil
 end
 
 function NetworkValue:_ConnectNetworkEvent()
@@ -89,7 +90,7 @@ function NetworkValue:_ConnectNetworkEvent()
 	else
 		self._NetworkEventConnection = self._NetworkEvent:Connect(function(value)
 			self._Value = value
-			self.ValueChanged:Fire(value)
+			self.Changed:Fire(value)
 		end)
 		self._NetworkEvent:FireServer()
 	end
@@ -168,7 +169,7 @@ function NetworkValue:SetValue(value: any?, player: Player?)
 		self._Value = value
 		self._PlayerValues = {}
 		self._NetworkEvent:FireAllClients(value)
-		self.ValueChanged:Fire(value)
+		self.Changed:Fire(value)
 	end
 end
 

@@ -1,7 +1,7 @@
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 
-local Event = require(script.Parent.Event)
+local Event = require(script.Parent.Packages.Event)
 
 --[=[
 	@within NetworkEvent
