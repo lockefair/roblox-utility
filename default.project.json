@@ -7,9 +7,7 @@
 			"$path": "tests/Shared",
 			"Packages": {
 				"$className": "Folder",
-				"Utility": {
-					"$path": "src"
-				}
+				"$path": "src"
 			}
 		},
 		"ServerScriptService": {
