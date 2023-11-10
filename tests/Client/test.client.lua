@@ -1,0 +1,12 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Event = require(ReplicatedStorage.Packages.Event)
+
+local event = Event.new()
+local connection = event:connect(function(...)
+	print("The event fired and passed the value:", ...)
+end)
+event:fire(1, 2, 3)
+print(connection.connected)
+connection:disconnect()
+print(connection.connected)
+event:destroy()

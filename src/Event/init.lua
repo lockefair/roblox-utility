@@ -8,8 +8,10 @@ type Event = Types.Event
 	@interface EventConnection
 	@field connected boolean
 	@field disconnect () -> ()
+
 	An interface that respresents a connection to an event. An object which conforms to this interface is returned by the `Event:connect` method.
 	This `EventConnection` object can be used to disconnect the callback from the event.
+
 	```lua
 	print(connection.connected) -- true
 	connection:disconnect()
@@ -26,13 +28,15 @@ export type Self = Event
 
 --[=[
 	@within Event
-	@prop className string
 	@tag Static
+	@prop className string
+
 	Static property that defines the class name of the `NetworkEvent` object
 ]=]
 
 --[=[
 	@class Event
+
 	A signal implementation that wraps Roblox's BindableEvent
 
 	```lua
@@ -50,8 +54,8 @@ Event.__index = Event
 Event.className = "Event"
 
 --[=[
-	@return Event
 	@tag Static
+
 	Constructs a new `Event` object
 ]=]
 function Event.new(): Event
@@ -88,25 +92,24 @@ function Event:_connectBindableEvent()
 	self._bindableEventConnection = self._bindableEvent.Event:Connect(function()
 		for _, connection in pairs(self._connections) do
 			local callback = self._callbacks[connection]
-			callback(self._value)
+			callback(table.unpack(self._value))
 		end
 	end)
 end
 
 --[=[
-	@param callback (value: any) -> ()
-	@return EventConnection
 	Connects a callback to the event which is invoked when
 	the event is fired.
 
 	```lua
 	local event = Event.new()
-	event:connect(function(value)
-		print("The event fired and passed the value:", value)
+	event:connect(function(...)
+		print("The event fired and passed the values:", ...)
 	end)
+	event:fire(1, 2, 3)
 	```
 ]=]
-function Event:connect(callback: (value: any) -> ()): EventConnection
+function Event:connect(callback: (...any) -> ()): EventConnection
 	assert(callback ~= nil and type(callback) == "function", "callback must be a function")
 
 	local eventConnection = EventConnection.new(self)
@@ -117,7 +120,6 @@ function Event:connect(callback: (value: any) -> ()): EventConnection
 end
 
 --[=[
-	@param eventConnection EventConnection
 	Disconnects a callback from the event.
 
 	:::caution
@@ -136,19 +138,14 @@ function Event:disconnect(eventConnection: EventConnection)
 end
 
 --[=[
-	@param value any
 	Fires the event with the given arguments.
 
 	```lua
-	local event = Event.new()
-	event:connect(function(value)
-		print("The event fired and passed the value:", value)
-	end)
 	event:fire("Hello, world!")
 	```
 ]=]
-function Event:fire(value: any)
-	self._value = value
+function Event:fire(...: any)
+	self._value = {...}
 	self._bindableEvent:Fire()
 end
 

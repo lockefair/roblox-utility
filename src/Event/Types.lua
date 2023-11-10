@@ -10,8 +10,8 @@ export type Event = {
 	className: string,
 	new: () -> Event,
 	destroy: (self: Event) -> (),
-	connect: (self: Event, callback: (value: any) -> ()) -> EventConnection,
-	fire: (self: Event, value: any) -> ()
+	connect: (self: Event, callback: (...any) -> ()) -> EventConnection,
+	fire: (self: Event, ...any) -> ()
 }
 
 return {}

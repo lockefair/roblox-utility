@@ -3,7 +3,7 @@ gitSourceBranch = "main"
 
 [home]
 enabled = true
-includeReadme = true
+includeReadme = false
 
 [docusaurus]
 tagline = "A collection of object-orientated utility modules for Roblox"
@@ -13,5 +13,5 @@ section = "Event"
 classes = ["Event", "EventConnection"]
 
 [[classOrder]]
-section = "Network"
-classes = ["Network", "NetworkEvent", "NetworkRequest", "NetworkValue"]
+section = "Connection"
+classes = ["Connection", "NetworkEvent", "NetworkRequest", "NetworkValue"]

@@ -3,45 +3,61 @@ local RunService = game:GetService("RunService")
 local Event = require(script.Parent.Packages.Event)
 local NetworkEvent = require(script.Parent.NetworkEvent)
 
+type Event = Event.Self
+
+type NetworkValue = {
+	className: string,
+	changed: Event,
+	new: (name: string, parent: Instance, value: any?) -> NetworkValue,
+	destroy: (self: NetworkValue) -> (),
+	getValue: (self: NetworkValue, player: Player?) -> any?,
+	setValue: (self: NetworkValue, value: any?, player: Player?) -> ()
+}
+
+--[=[
+	@within NetworkValue
+	@type Self NetworkValue
+]=]
+export type Self = NetworkValue
+
 --[=[
 	@within NetworkValue
 	@prop className string
+	@tag Static
+
 	Static property that defines the class name of the `NetworkValue` object
 ]=]
 
 --[=[
 	@within NetworkValue
-	@prop Changed Event
+	@prop changed Event
+
 	Defines the `Event` object that is fired when the value of the `NetworkValue` object changes
 ]=]
-export type NetworkValue = {
-	className: string,
-	Changed: Event.Event,
-	new: (name: string, parent: Instance, value: any?) -> NetworkValue,
-	Destroy: (self: NetworkValue) -> (),
-	GetValue: (self: NetworkValue, player: Player?) -> any?,
-	SetValue: (self: NetworkValue, value: any?, player: Player?) -> ()
-}
 
 --[=[
 	@class NetworkValue
+
 	An object that wraps Roblox's `RemoteEvent` and synchronizes values between the server and client. Values can be set by the server and are automatically
 	updated on the client. Values can be set for everybody or for a specific player.
 
 	:::note
 	Network values are intended to be paired. A `NetworkValue` object should be initialized on the server first, then on the client,
 	otherwise an error will occur.
+
+	Any type of Roblox object such as an Enum, Instance, or others can be passed as a parameter when a `NetworkValue` is updated,
+	as well as Luau types such as numbers, strings, and booleans. `NetworkValue` shares its limitations with Roblox's `RemoteEvent` class.
 	:::
 
 	```lua
 	-- Server
-	local serverHealthValue = NetworkValue.new("PlayerHealth", workspace, 100)
+	local serverValue = NetworkValue.new("PlayerHealth", workspace, 100)
 
 	-- Client
-	local clientHealthValue = NetworkValue.new("PlayerHealth", workspace)
+	local clientValue = NetworkValue.new("PlayerHealth", workspace)
 
-	print("The players health is:", clientHealthValue:GetValue()) -- 100
-	clientHealthValue.Changed:Connect(function(value)
+	print("The players health is:", clientValue:getValue()) -- 100
+	clientValue.changed:connect(function(value)
 		print("The players health changed to:", value)
 	end)
 	```
@@ -51,7 +67,8 @@ NetworkValue.__index = NetworkValue
 NetworkValue.className = "NetworkValue"
 
 --[=[
-	@return NetworkValue
+	@tag Static
+
 	Constructs a new `NetworkValue` object
 ]=]
 function NetworkValue.new(name: string, parent: Instance, value: any?): NetworkValue
@@ -62,14 +79,14 @@ function NetworkValue.new(name: string, parent: Instance, value: any?): NetworkV
 	end
 
 	local self = setmetatable({
-		_Value = value,
-		_PlayerValues = {},
-		_NetworkEvent = NetworkEvent.new(name, parent),
-		_NetworkEventConnection = nil,
-		Changed = Event.new(),
+		_value = value,
+		_playerValues = {},
+		_networkEvent = NetworkEvent.new(name, parent),
+		_networkEventConnection = nil,
+		changed = Event.new(),
 	}, NetworkValue)
 
-	self:_ConnectNetworkEvent()
+	self:_connectNetworkEvent()
 
 	return self
 end
@@ -77,89 +94,82 @@ end
 --[=[
 	Deconstructs the `NetworkValue` object
 ]=]
-function NetworkValue:Destroy()
-	self._Value = nil
-	self._PlayerValues = nil
-	self._NetworkEventConnection:Disconnect()
-	self._NetworkEventConnection = nil
-	self._NetworkEvent:Destroy()
-	self._NetworkEvent = nil
-	self.Changed:Destroy()
-	self.Changed = nil
+function NetworkValue:destroy()
+	self._value = nil
+	self._playerValues = nil
+	self._networkEventConnection:disconnect()
+	self._networkEventConnection = nil
+	self._networkEvent:destroy()
+	self._networkEvent = nil
+	self.changed:destroy()
+	self.changed = nil
 end
 
-function NetworkValue:_ConnectNetworkEvent()
+function NetworkValue:_connectNetworkEvent()
 	if RunService:IsServer() then
-		self._NetworkEventConnection = self._NetworkEvent:Connect(function(player)
-			self._NetworkEvent:FireClient(player, self._Value)
+		self._networkEventConnection = self._networkEvent:connect(function(player)
+			self._networkEvent:fireClient(player, self._value)
 		end)
 	else
-		self._NetworkEventConnection = self._NetworkEvent:Connect(function(value)
-			self._Value = value
-			self.Changed:Fire(value)
+		self._networkEventConnection = self._networkEvent:connect(function(value)
+			self._value = value
+			self.changed:fire(value)
 		end)
-		self._NetworkEvent:FireServer()
+		self._networkEvent:fireServer()
 	end
 end
 
 --[=[
-	@param player Player?
-	@return any?
 	Returns the value of the `NetworkValue` object. If called on the server and a player is specified, the value for that specific player is returned. The player
 	parameter is ignored on the client.
 
 	```lua
 	-- Server
-	local serverHealthValue = NetworkValue.new("PlayerHealth", workspace, 100)
+	serverValue:setValue(80)
+	serverValue:setValue(50, player1)
 
-	serverHealthValue:SetValue(80)
-	serverHealthValue:SetValue(50, player1)
-
-	serverHealthValue:GetValue() -- 80
-	serverHealthValue:GetValue(player1) -- 50
+	serverValue:getValue() -- 80
+	serverValue:getValue(player1) -- 50
 
 	-- Player1 Client
-	local clientHealthValue = NetworkValue.new("PlayerHealth", workspace)
-	clientHealthVlaue:GetValue() -- 50
+	clientValue:getValue() -- 50
 
 	-- Other Client(s)
-	local clientHealthValue = NetworkValue.new("PlayerHealth", workspace)
-	clientHealthVlaue:GetValue() -- 80
+	clientValue:getValue() -- 80
 	```
 ]=]
-function NetworkValue:GetValue(player: Player?): any?
+function NetworkValue:getValue(player: Player?): any?
 	if player then
 		assert(typeof(player) == "Instance" and player:IsA("Player"), "player must be a Player")
 	end
 
 	if RunService:IsClient() then
-		return self._Value
+		return self._value
 	elseif player then
-		for playerKey, playerValue in pairs(self._PlayerValues) do
+		for playerKey, playerValue in pairs(self._playerValues) do
 			if player == playerKey then
 				return playerValue
 			end
 		end
-		return self._Value
+		return self._value
 	else
-		return self._Value
+		return self._value
 	end
 end
 
 --[=[
 	@server
-	@param value any?
-	@param player Player?
+
 	Sets the value of the `NetworkValue` object. If a player is specified, the value for that specific player is set.
 
 	```lua
 	local healthValue = NetworkValue.new("PlayerHealth", workspace, 100)
 
-	healthValue:SetValue(80)
-	healthValue:SetValue(50, player1)
+	healthValue:setValue(80)
+	healthValue:setValue(50, player1)
 	```
 ]=]
-function NetworkValue:SetValue(value: any?, player: Player?)
+function NetworkValue:setValue(value: any?, player: Player?)
 	if player then
 		assert(typeof(player) == "Instance" and player:IsA("Player"), "player must be a Player")
 	end
@@ -169,13 +179,13 @@ function NetworkValue:SetValue(value: any?, player: Player?)
 	end
 
 	if player then
-		self._PlayerValues[player] = value
-		self._NetworkEvent:FireClient(player, value)
+		self._playerValues[player] = value
+		self._networkEvent:fireClient(player, value)
 	else
-		self._Value = value
-		self._PlayerValues = {}
-		self._NetworkEvent:FireAllClients(value)
-		self.Changed:Fire(value)
+		self._value = value
+		self._playerValues = {}
+		self._networkEvent:fireAllClients(value)
+		self.changed:fire(value)
 	end
 end
 

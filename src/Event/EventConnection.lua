@@ -11,8 +11,8 @@ export type Self = EventConnection
 
 --[=[
 	@within EventConnection
-	@prop className string
 	@tag Static
+	@prop className string
 	Static property that defines the class name of the `NetworkEvent` object
 ]=]
 
@@ -24,6 +24,7 @@ export type Self = EventConnection
 
 --[=[
 	@class EventConnection
+
 	An object that represents a connection to an event
 
 	```lua
@@ -39,9 +40,8 @@ EventConnection.__index = EventConnection
 EventConnection.className = "EventConnection"
 
 --[=[
-	@return Event
-	@param event Event
 	@tag Static
+
 	Constructs a new `EventConnection` object
 
 	:::caution
