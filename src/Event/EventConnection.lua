@@ -77,6 +77,4 @@ function EventConnection:disconnect()
 	self.connected = false
 end
 
-table.freeze(EventConnection)
-
-return EventConnection
+return table.freeze(EventConnection)

@@ -149,6 +149,4 @@ function Event:fire(...: any)
 	self._bindableEvent:Fire()
 end
 
-table.freeze(Event)
-
-return Event
+return table.freeze(Event)

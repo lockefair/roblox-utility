@@ -162,4 +162,4 @@ function NetworkRequest:invoke(...: any): ...any
 	return self._remoteFunction:InvokeServer(...)
 end
 
-return NetworkRequest
+return table.freeze(NetworkRequest)

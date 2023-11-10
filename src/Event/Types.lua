@@ -14,4 +14,4 @@ export type Event = {
 	fire: (self: Event, ...any) -> ()
 }
 
-return {}
+return table.freeze({})

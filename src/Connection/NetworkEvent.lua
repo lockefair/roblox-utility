@@ -224,6 +224,4 @@ function NetworkEvent:fireAllClients(...: any)
 	self._remoteEvent:fireAllClients(...)
 end
 
-table.freeze(NetworkEvent)
-
-return NetworkEvent
+return table.freeze(NetworkEvent)

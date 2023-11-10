@@ -189,4 +189,4 @@ function NetworkValue:setValue(value: any?, player: Player?)
 	end
 end
 
-return NetworkValue
+return table.freeze(NetworkValue)

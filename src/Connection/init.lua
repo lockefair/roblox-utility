@@ -21,4 +21,5 @@ local Connection = {
 	NetworkRequest = require(script.NetworkRequest),
 	NetworkValue = require(script.NetworkValue)
 }
+
 return table.freeze(Connection)
