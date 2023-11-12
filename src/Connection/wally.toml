@@ -1,5 +1,5 @@
 [package]
-name = "lockefair/network"
+name = "lockefair/connection"
 description = "Networking utility for Roblox"
 version = "0.1.0"
 license = "MIT"
