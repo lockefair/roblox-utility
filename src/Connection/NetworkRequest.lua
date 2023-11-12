@@ -2,9 +2,9 @@ local RunService = game:GetService("RunService")
 
 type NetworkRequest = {
 	className: string,
-	new: (name: string, parent: Instance, callback: (...any) -> (...any)?) -> NetworkRequest,
+	new: (name: string, parent: Instance, callback: (player: Player, ...any) -> (...any)?) -> NetworkRequest,
 	destroy: (self: NetworkRequest) -> (),
-	connect: (self: NetworkRequest, callback: (...any) -> (...any)) -> (),
+	connect: (self: NetworkRequest, callback: (player: Player, ...any) -> (...any)) -> (),
 	invoke: (self: NetworkRequest, ...any) -> ()
 }
 
@@ -59,7 +59,7 @@ NetworkRequest.className = "NetworkRequest"
 
 	Constructs a new `NetworkRequest` object
 ]=]
-function NetworkRequest.new(name: string, parent: Instance, callback: (...any) -> (...any)?): NetworkRequest
+function NetworkRequest.new(name: string, parent: Instance, callback: (player: Player, ...any) -> (...any)?): NetworkRequest
 	assert(name ~= nil and type(name) == "string", "name must be a string")
 	assert(parent ~= nil and typeof(parent) == "Instance", "parent must be an Instance")
 	if callback then
@@ -132,7 +132,7 @@ end
 	end
 	```
 ]=]
-function NetworkRequest:connect(callback: (...any) -> (...any))
+function NetworkRequest:connect(callback: (player: Player, ...any) -> (...any))
 	assert(callback ~= nil and typeof(callback) == "function", "Callback must be provided")
 
 	if RunService:IsClient() then
