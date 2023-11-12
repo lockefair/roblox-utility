@@ -1,40 +1,52 @@
 local Types = require(script.Types)
 local EventConnection = require(script.EventConnection)
 
+type Event = Types.Event
+
 --[=[
 	@within Event
 	@interface EventConnection
-	@field Connected boolean
-	@field Disconnect () -> ()
-	An interface that respresents a connection to an event. An object which conforms to this interface is returned by the `Event:Connect` method.
-	This `EventConnection` object can be used to disconnect the callback from the event. A connection doesn't need to be destroyed after being disconnected.
-	
+	@field connected boolean
+	@field disconnect () -> ()
+
+	An interface that respresents a connection to an event. An object which conforms to this interface is returned by the `Event:connect` method.
+	This `EventConnection` object can be used to disconnect the callback from the event.
+
 	```lua
-	print(connection.Connected) -- true
-	connection:Disconnect()
-	print(connection.Connected) -- false
+	print(connection.connected) -- true
+	connection:disconnect()
+	print(connection.connected) -- false
 	```
 ]=]
 export type EventConnection = Types.EventConnection
 
 --[=[
 	@within Event
-	@prop className string
+	@type Self Event
 ]=]
-export type Event = Types.Event
+export type Self = Event
+
+--[=[
+	@within Event
+	@tag Static
+	@prop className string
+
+	Static property that defines the class name of the `NetworkEvent` object
+]=]
 
 --[=[
 	@class Event
+
 	A signal implementation that wraps Roblox's BindableEvent
 
 	```lua
 	local event = Event.new()
-	local connection = event:Connect(function(value)
+	local connection = event:connect(function(value)
 		print("The event fired and passed the value:", value)
 	end)
-	event:Fire("Hello, world!")
-	connection:Disconnect()
-	event:Destroy()
+	event:fire("Hello, world!")
+	connection:disconnect()
+	event:destroy()
 	```
 ]=]
 local Event = {}
@@ -42,19 +54,20 @@ Event.__index = Event
 Event.className = "Event"
 
 --[=[
-	@return Event
+	@tag Static
+
 	Constructs a new `Event` object
 ]=]
-function Event.new(): Types.Event
+function Event.new(): Event
 	local self = setmetatable({
-		_BindableEvent = Instance.new("BindableEvent"),
-		_BindableEventConnection = nil,
-		_Connections = {},
-		_Callbacks = {},
-		_Value = nil
+		_bindableEvent = Instance.new("BindableEvent"),
+		_bindableEventConnection = nil,
+		_connections = {},
+		_callbacks = {},
+		_value = nil
 	}, Event)
 
-	self:_ConnectBindableEvent()
+	self:_connectBindableEvent()
 
 	return self
 end
@@ -62,54 +75,51 @@ end
 --[=[
 	Deconstructs the `Event` object
 ]=]
-function Event:Destroy()
-	for _, connection in pairs(self._Connections) do
-		connection:Destroy()
+function Event:destroy()
+	for _, connection in pairs(self._connections) do
+		connection:destroy()
 	end
-	self._Connections = nil
-	self._Callbacks = nil
-	self._Value = nil
-	self._BindableEventConnection:Disconnect()
-	self._BindableEventConnection = nil
-	self._BindableEvent:Destroy()
-	self._BindableEvent = nil
+	self._connections = nil
+	self._callbacks = nil
+	self._value = nil
+	self._bindableEventConnection:disconnect()
+	self._bindableEventConnection = nil
+	self._bindableEvent:Destroy()
+	self._bindableEvent = nil
 end
 
-function Event:_ConnectBindableEvent()
-	self._BindableEventConnection = self._BindableEvent.Event:Connect(function()
-		local value = table.unpack(self._Value)
-		for _, connection in pairs(self._Connections) do
-			local callback = self._Callbacks[connection]
-			callback(value)
+function Event:_connectBindableEvent()
+	self._bindableEventConnection = self._bindableEvent.Event:Connect(function()
+		for _, connection in pairs(self._connections) do
+			local callback = self._callbacks[connection]
+			callback(table.unpack(self._value))
 		end
 	end)
 end
 
 --[=[
-	@param callback (...any) -> ()
-	@return EventConnection
 	Connects a callback to the event which is invoked when
 	the event is fired.
 
 	```lua
 	local event = Event.new()
-	event:Connect(function(value)
-		print("The event fired and passed the value:", value)
+	event:connect(function(...)
+		print("The event fired and passed the values:", ...)
 	end)
+	event:fire(1, 2, 3)
 	```
 ]=]
-function Event:Connect(callback: (...any) -> ()): Types.EventConnection
+function Event:connect(callback: (...any) -> ()): EventConnection
 	assert(callback ~= nil and type(callback) == "function", "callback must be a function")
 
 	local eventConnection = EventConnection.new(self)
-	self._Connections[eventConnection] = eventConnection
-	self._Callbacks[eventConnection] = callback
+	self._connections[eventConnection] = eventConnection
+	self._callbacks[eventConnection] = callback
 
 	return eventConnection
 end
 
 --[=[
-	@param eventConnection EventConnection
 	Disconnects a callback from the event.
 
 	:::caution
@@ -117,33 +127,26 @@ end
 	It's not necessary to call this manually.
 	:::
 ]=]
-function Event:Disconnect(eventConnection: Types.EventConnection)
+function Event:disconnect(eventConnection: EventConnection)
 	assert(eventConnection ~= nil and type(eventConnection) == "table" and eventConnection.className == "EventConnection", "eventConnection must be an EventConnection")
 
-	if self._Connections[eventConnection] then
-		eventConnection:Destroy()
-		self._Connections[eventConnection] = nil
-		self._Callbacks[eventConnection] = nil
+	if self._connections[eventConnection] then
+		eventConnection:destroy()
+		self._connections[eventConnection] = nil
+		self._callbacks[eventConnection] = nil
 	end
 end
 
 --[=[
-	@param ... any
 	Fires the event with the given arguments.
 
 	```lua
-	local event = Event.new()
-	event:Connect(function(value)
-		print("The event fired and passed the value:", value)
-	end)
-	event:Fire("Hello, world!")
+	event:fire("Hello, world!")
 	```
 ]=]
-function Event:Fire(...: any)
-	self._Value = {...}
-	self._BindableEvent:Fire()
+function Event:fire(...: any)
+	self._value = {...}
+	self._bindableEvent:Fire()
 end
 
-table.freeze(Event)
-
-return Event
+return table.freeze(Event)

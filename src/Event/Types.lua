@@ -1,17 +1,17 @@
 export type EventConnection = {
 	className: string,
-	Connected: boolean,
+	connected: boolean,
 	new: (event: Event) -> EventConnection,
-	Destroy: (self: EventConnection) -> (),
-	Disconnect: (self: EventConnection) -> ()
+	destroy: (self: EventConnection) -> (),
+	disconnect: (self: EventConnection) -> ()
 }
 
 export type Event = {
 	className: string,
 	new: () -> Event,
-	Destroy: (self: Event) -> (),
-	Connect: (self: Event, callback: (...any) -> ()) -> EventConnection,
-	Fire: (self: Event, ...any) -> ()
+	destroy: (self: Event) -> (),
+	connect: (self: Event, callback: (...any) -> ()) -> EventConnection,
+	fire: (self: Event, ...any) -> ()
 }
 
-return {}
+return table.freeze({})

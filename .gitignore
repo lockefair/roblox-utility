@@ -1,6 +1,6 @@
 *.zip
 /build
-/Packages
+Packages
 *.rbxl
 *.rbxl.lock
-sourcemap.json
+wally.lock
