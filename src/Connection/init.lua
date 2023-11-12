@@ -1,7 +1,7 @@
 --[=[
 	@class Connection
 
-	The `Connection` package provides access the following network-related modules.
+	The `Connection` package provides access the following network modules.
 
 	- [NetworkEvent](/api/NetworkEvent)
 	- [NetworkRequest](/api/NetworkRequest)

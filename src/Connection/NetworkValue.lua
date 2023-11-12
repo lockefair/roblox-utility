@@ -120,8 +120,12 @@ function NetworkValue:_connectNetworkEvent()
 end
 
 --[=[
-	Returns the value of the `NetworkValue` object. If called on the server and a player is specified, the value for that specific player is returned. The player
-	parameter is ignored on the client.
+	Returns the value of the `NetworkValue` object. If called on the server and a player is specified, the value for that specific player is returned.
+
+	:::note
+	The player parameter is ignored on the client. The value returned is always the value of the `NetworkValue` object on the server,
+	wether that is the global value or the value set specifically for the local player.
+	:::
 
 	```lua
 	-- Server

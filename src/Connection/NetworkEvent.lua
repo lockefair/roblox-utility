@@ -134,9 +134,19 @@ end
 	Connects a callback to the `NetworkEvent` which is invoked when
 	the event is fired.
 
+	:::note
+	When connecting on the Server, the first argument passed to the callback is always the player that fired the event.
+	:::
+
 	```lua
+	-- Client
 	clientEvent:connect(function(...)
 		print("The event fired and passed the values:", ...)
+	end)
+
+	-- Server
+	serverEvent:connect(function(player, ...)
+		print("The event was fired by " .. player .. " and passed the values:", ...)
 	end)
 	```
 ]=]
