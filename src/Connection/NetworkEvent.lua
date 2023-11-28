@@ -16,6 +16,23 @@ type NetworkEvent = {
 
 --[=[
 	@within NetworkEvent
+	@interface EventConnection
+	@field connected boolean
+	@field disconnect () -> ()
+
+	An interface that respresents a connection to an event. An object which conforms to this interface is returned by the `NetworkEvent:connect` method.
+	This `EventConnection` object can be used to disconnect the callback from the event.
+
+	```lua
+	print(connection.connected) -- true
+	connection:disconnect()
+	print(connection.connected) -- false
+	```
+]=]
+export type EventConnection = Event.EventConnection
+
+--[=[
+	@within NetworkEvent
 	@type Self NetworkEvent
 ]=]
 export type Self = NetworkEvent
