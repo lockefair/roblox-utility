@@ -1,7 +1,7 @@
 [package]
 name = "lockefair/connection"
 description = "Networking utility for Roblox"
-version = "0.1.2"
+version = "0.1.3"
 license = "MIT"
 authors = ["Joe Lunn <joe@noctua.dev>"]
 registry = "https://github.com/UpliftGames/wally-index"

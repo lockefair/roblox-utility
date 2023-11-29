@@ -7,11 +7,19 @@ type NetworkEvent = {
 	className: string,
 	new: (name: string, parent: Instance) -> NetworkEvent,
 	destroy: (self: NetworkEvent) -> (),
-	connect: (self: NetworkEvent, callback: (...any) -> ()) -> Event.EventConnection,
+	connect: (self: NetworkEvent, callback: (...any) -> ()) -> EventConnection,
 	fireServer: (self: NetworkEvent, ...any) -> (),
 	fireClient: (self: NetworkEvent, player: Player, ...any) -> (),
 	fireFilteredClients: (self: NetworkEvent, predicate: (player: Player) -> boolean, ...any) -> (),
 	fireAllClients: (self: NetworkEvent, ...any) -> ()
+}
+
+type _NetworkEvent = NetworkEvent & {
+	_name: string,
+	_parent: Instance,
+	_event: Event.Self,
+	_remoteEvent: RemoteEvent?,
+	_remoteEventConnection: RBXScriptConnection?
 }
 
 --[=[
@@ -42,7 +50,7 @@ export type Self = NetworkEvent
 	@tag Static
 	@prop className string
 
-	Static property that defines the class name of the `NetworkEvent` object
+	Static property that defines the class name `NetworkEvent`
 ]=]
 
 --[=[
@@ -73,7 +81,7 @@ export type Self = NetworkEvent
 	serverEvent:fireClient(player, 1, 2, 3)
 	```
 ]=]
-local NetworkEvent = {}
+local NetworkEvent: _NetworkEvent = {}
 NetworkEvent.__index = NetworkEvent
 NetworkEvent.className = "NetworkEvent"
 
@@ -81,6 +89,9 @@ NetworkEvent.className = "NetworkEvent"
 	@tag Static
 
 	Constructs a new `NetworkEvent` object
+
+	@param name string -- The name of the `NetworkEvent` instance which must match on the client and server
+	@param parent Instance -- The parent of the `NetworkEvent` instance which must match on the client and server
 ]=]
 function NetworkEvent.new(name: string, parent: Instance): NetworkEvent
 	assert(name ~= nil and type(name) == "string", "name must be a string")
@@ -151,6 +162,8 @@ end
 	Connects a callback to the `NetworkEvent` which is invoked when
 	the event is fired.
 
+	@param callback (...any) -> () -- The callback to be called when the event is fired
+
 	:::note
 	When connecting on the Server, the first argument passed to the callback is always the player that fired the event.
 	:::
@@ -167,7 +180,7 @@ end
 	end)
 	```
 ]=]
-function NetworkEvent:connect(callback: (...any) -> ()): Event.EventConnection
+function NetworkEvent:connect(callback: (...any) -> ()): EventConnection
 	assert(callback ~= nil and type(callback) == "function", "callback must be a function")
 
 	return self._event:connect(callback)
@@ -177,6 +190,8 @@ end
 	@client
 
 	Fires the `NetworkEvent` on the client, passing the given arguments to the server
+
+	@param ... any -- The arguments to pass to the server
 
 	```lua
 	event:fireServer("Hello, server!")
@@ -194,6 +209,9 @@ end
 	@server
 
 	Fires the `NetworkEvent` on the server, passing the given arguments to the players client
+
+	@param player Player -- The player to fire the event to
+	@param ... any -- The arguments to pass to the client
 
 	```lua
 	event:fireClient(player, "Hello, client!")
@@ -213,6 +231,9 @@ end
 	@server
 
 	Fires the `NetworkEvent` on the server, passing the given arguments to player clients that pass the given predicate check
+
+	@param predicate (player: Player) -> boolean -- The predicate to check against each player
+	@param ... any -- The arguments to pass to the client
 
 	```lua
 	event:fireFilteredClients(function(player)
@@ -238,6 +259,8 @@ end
 	@server
 
 	Fires the `NetworkEvent` on the server, passing the given arguments to all clients
+
+	@param ... any -- The arguments to pass to the clients
 
 	```lua
 	event:fireAllClients(1, 2, 3)
