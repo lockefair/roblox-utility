@@ -92,16 +92,15 @@ NetworkEvent.className = "NetworkEvent"
 
 	@param name string -- The name of the `NetworkEvent` instance which must match on the client and server
 	@param parent Instance -- The parent of the `NetworkEvent` instance which must match on the client and server
-	@param reliable boolean? -- Whether or not the event should be reliable. Defaults to `true`
-	```lua
+	@param unreliable boolean? -- Whether or not the event should be reliable. Defaults to `false`
 ]=]
-function NetworkEvent.new(name: string, parent: Instance, reliable: boolean?): NetworkEvent
+function NetworkEvent.new(name: string, parent: Instance, unreliable: boolean?): NetworkEvent
 	assert(name ~= nil and type(name) == "string", "name must be a string")
 	assert(parent ~= nil and typeof(parent) == "Instance", "parent must be an Instance")
-	if reliable ~= nil then
-		assert(type(reliable) == "boolean", "reliable must be a boolean")
+	if unreliable ~= nil then
+		assert(type(unreliable) == "boolean", "reliable must be a boolean")
 	else
-		reliable = true
+		unreliable = false
 	end
 
 	local self = setmetatable({
@@ -112,7 +111,7 @@ function NetworkEvent.new(name: string, parent: Instance, reliable: boolean?): N
 		_remoteEventConnection = nil
 	}, NetworkEvent)
 
-	self:_connectRemoteEvent(reliable)
+	self:_connectRemoteEvent(unreliable)
 
 	return self
 end
@@ -135,14 +134,14 @@ function NetworkEvent:destroy()
 	self._remoteEvent = nil
 end
 
-function NetworkEvent:_connectRemoteEvent(reliable: boolean)
+function NetworkEvent:_connectRemoteEvent(unreliable: boolean)
 	if RunService:IsServer() then
 		local remoteEvent = self._parent:FindFirstChild(self._name)
 		if remoteEvent ~= nil then
 			error("NetworkEvent can't create a remote event because an Instance with the name '" .. self._name .. "' already exists in " .. self._parent:GetFullName())
 		end
 
-		remoteEvent = if reliable then Instance.new("RemoteEvent") else Instance.new("UnreliableRemoteEvent")
+		remoteEvent = if not unreliable then Instance.new("RemoteEvent") else Instance.new("UnreliableRemoteEvent")
 		remoteEvent.Name = self._name
 		remoteEvent.Parent = self._parent
 
