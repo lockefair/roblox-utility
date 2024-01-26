@@ -92,13 +92,13 @@ NetworkEvent.className = "NetworkEvent"
 
 	@param name string -- The name of the `NetworkEvent` instance which must match on the client and server
 	@param parent Instance -- The parent of the `NetworkEvent` instance which must match on the client and server
-	@param unreliable boolean? -- Whether or not the event should be reliable. Defaults to `false`
+	@param unreliable boolean? -- Whether or not the event should be unreliable. Defaults to `false`
 ]=]
 function NetworkEvent.new(name: string, parent: Instance, unreliable: boolean?): NetworkEvent
 	assert(name ~= nil and type(name) == "string", "name must be a string")
 	assert(parent ~= nil and typeof(parent) == "Instance", "parent must be an Instance")
 	if unreliable ~= nil then
-		assert(type(unreliable) == "boolean", "reliable must be a boolean")
+		assert(type(unreliable) == "boolean", "unreliable must be a boolean")
 	else
 		unreliable = false
 	end
