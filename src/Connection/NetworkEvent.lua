@@ -56,8 +56,8 @@ export type Self = NetworkEvent
 --[=[
 	@class NetworkEvent
 
-	An object that wraps Roblox's `RemoteEvent`. It can be used to fire events between the server and client
-	without having to manage `RemoteEvent` lifecycles manually – initialization and deinitialization are handled for you.
+	An object that wraps Roblox's remote events. It can be used to fire events between the server and client
+	without having to manage remote event instance lifecycles manually – initialization and deinitialization are handled for you.
 
 	:::note
 	Network events are intended to be paired. A `NetworkEvent` object should be initialized on the server first, then on the client,
@@ -88,14 +88,21 @@ NetworkEvent.className = "NetworkEvent"
 --[=[
 	@tag Static
 
-	Constructs a new `NetworkEvent` object
+	Constructs a new `NetworkEvent` object. The 'reliable' parameter is defined by the server and ignored by the client.
 
 	@param name string -- The name of the `NetworkEvent` instance which must match on the client and server
 	@param parent Instance -- The parent of the `NetworkEvent` instance which must match on the client and server
+	@param reliable boolean? -- Whether or not the event should be reliable. Defaults to `true`
+	```lua
 ]=]
-function NetworkEvent.new(name: string, parent: Instance): NetworkEvent
+function NetworkEvent.new(name: string, parent: Instance, reliable: boolean?): NetworkEvent
 	assert(name ~= nil and type(name) == "string", "name must be a string")
 	assert(parent ~= nil and typeof(parent) == "Instance", "parent must be an Instance")
+	if reliable ~= nil then
+		assert(type(reliable) == "boolean", "reliable must be a boolean")
+	else
+		reliable = true
+	end
 
 	local self = setmetatable({
 		_name = name,
@@ -105,7 +112,7 @@ function NetworkEvent.new(name: string, parent: Instance): NetworkEvent
 		_remoteEventConnection = nil
 	}, NetworkEvent)
 
-	self:_connectRemoteEvent()
+	self:_connectRemoteEvent(reliable)
 
 	return self
 end
@@ -128,14 +135,14 @@ function NetworkEvent:destroy()
 	self._remoteEvent = nil
 end
 
-function NetworkEvent:_connectRemoteEvent()
+function NetworkEvent:_connectRemoteEvent(reliable: boolean)
 	if RunService:IsServer() then
 		local remoteEvent = self._parent:FindFirstChild(self._name)
 		if remoteEvent ~= nil then
-			error("NetworkEvent can't create a RemoteEvent because an Instance with the name '" .. self._name .. "' already exists in " .. self._parent:GetFullName())
+			error("NetworkEvent can't create a remote event because an Instance with the name '" .. self._name .. "' already exists in " .. self._parent:GetFullName())
 		end
 
-		remoteEvent = Instance.new("RemoteEvent")
+		remoteEvent = if reliable then Instance.new("RemoteEvent") else Instance.new("UnreliableRemoteEvent")
 		remoteEvent.Name = self._name
 		remoteEvent.Parent = self._parent
 
@@ -145,9 +152,9 @@ function NetworkEvent:_connectRemoteEvent()
 
 		self._remoteEvent = remoteEvent
 	else
-		local remoteEvent: RemoteEvent = self._parent:FindFirstChild(self._name)
+		local remoteEvent: RemoteEvent | UnreliableRemoteEvent = self._parent:WaitForChild(self._name)
 		if remoteEvent == nil then
-			error("NetworkEvent can't find a RemoteEvent with the name '" .. self._name .. "' in " .. self._parent:GetFullName() .. " - A NetworkEvent with matching properties should be initialized on the server first")
+			error("NetworkEvent can't find a remote event with the name '" .. self._name .. "' in " .. self._parent:GetFullName() .. " - A NetworkEvent with matching properties should be initialized on the server first")
 		end
 
 		self._remoteEventConnection = remoteEvent.OnClientEvent:Connect(function(...)
@@ -165,7 +172,7 @@ end
 	@param callback (...any) -> () -- The callback to be called when the event is fired
 
 	:::note
-	When connecting on the Server, the first argument passed to the callback is always the player that fired the event.
+	When connecting on the server, the first argument passed to the callback is always the player that fired the event.
 	:::
 
 	```lua
