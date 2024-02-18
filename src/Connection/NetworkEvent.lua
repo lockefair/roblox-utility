@@ -29,8 +29,8 @@ type _NetworkEvent = NetworkEvent & {
 	@field connected boolean
 	@field disconnect () -> ()
 
-	An interface that respresents a connection to an event. An object which conforms to this interface is returned by the `NetworkEvent:connect` method.
-	This `EventConnection` object can be used to disconnect the callback from the event
+	An interface that respresents a connection to an event. An object which conforms to this interface is returned by the `NetworkEvent:connect` method, this
+	`EventConnection` object can be used to disconnect the callback from the event
 
 	```lua
 	print(connection.connected) -- true
@@ -61,19 +61,20 @@ export type Self = NetworkEvent
 	without having to manage remote event instance lifecycles manually – initialization and deinitialization are handled for you
 
 	:::note
-	Network events are intended to be paired. A `NetworkEvent` object should be initialized on the server first, then on the client,
-	otherwise an error will occur
+	Network events are intended to be paired. A `NetworkEvent` object should be initialized on the server first and then on the client,
+	otherwise, an error will occur. Attempting to call a method on a `NetworkEvent` after its server-side counterpart has been destroyed
+	will result in a warning
 
-	Any type of Roblox object such as an Enum, Instance, or others can be passed as a parameter when a `NetworkEvent` is fired,
-	as well as Luau types such as numbers, strings, and booleans. `NetworkEvent` shares its limitations with Roblox's `RemoteEvent` class
+	Any type of Roblox object such as an `Enum`, `Instance`, or others can be passed as a parameter when a `NetworkEvent` is fired,
+	as well as Luau types such as `number`, `string`, and `boolean`. `NetworkEvent` shares its limitations with Roblox's `RemoteEvent` class
 	:::
 
 	```lua
 	-- Server
-	local serverEvent = NetworkEvent.new("MyNetworkEvent", workspace)
+	local serverEvent = NetworkEvent.new("MyNetworkEvent", ReplicatedStorage)
 
 	-- Client
-	local clientEvent = NetworkEvent.new("MyNetworkEvent", workspace)
+	local clientEvent = NetworkEvent.new("MyNetworkEvent", ReplicatedStorage)
 	clientEvent:connect(function(...)
 		print("The event fired and passed the values:", ...) -- 1, 2, 3
 	end)
@@ -177,10 +178,9 @@ function NetworkEvent:_connectRemoteEvent(unreliable: boolean)
 end
 
 --[=[
-	@param callback (...any) -> () -- The callback to be called when the event is fired
+	@param callback (...any) -> () -- The callback to be invoked when the event is fired
 
-	Connects a callback to the `NetworkEvent` which is invoked when
-	the event is fired
+	Connects a callback to the `NetworkEvent` which is invoked when the event is fired
 
 	:::note
 	When connecting on the server, the first argument passed to the callback is always the player that fired the event
