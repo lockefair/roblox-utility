@@ -5,6 +5,7 @@ local Event = require(script.Parent.Parent.Event)
 
 type NetworkEvent = {
 	className: string,
+	destroying: Event.Self,
 	new: (name: string, parent: Instance) -> NetworkEvent,
 	destroy: (self: NetworkEvent) -> (),
 	connect: (self: NetworkEvent, callback: (...any) -> ()) -> EventConnection,
@@ -18,9 +19,9 @@ type _NetworkEvent = NetworkEvent & {
 	_name: string,
 	_parent: Instance,
 	_event: Event.Self,
-	_remoteEvent: RemoteEvent?,
 	_remoteEventConnection: RBXScriptConnection?,
-	_destroyingConnection: RBXScriptConnection?
+	_destroyingConnection: RBXScriptConnection?,
+	_remoteEvent: RemoteEvent?
 }
 
 --[=[
@@ -111,7 +112,8 @@ function NetworkEvent.new(name: string, parent: Instance, unreliable: boolean?):
 		_event = Event.new(),
 		_remoteEventConnection = nil,
 		_destroyingConnection = nil,
-		_remoteEvent = nil
+		_remoteEvent = nil,
+		destroying = Event.new()
 	}, NetworkEvent)
 
 	self:_connectRemoteEvent(unreliable)
@@ -141,6 +143,10 @@ function NetworkEvent:destroy()
 		self._remoteEvent:Destroy()
 	end
 	self._remoteEvent = nil
+	if self.destroying then
+		self.destroying:destroy()
+		self.destroying = nil
+	end
 end
 
 function NetworkEvent:_connectRemoteEvent(unreliable: boolean)
@@ -173,6 +179,7 @@ function NetworkEvent:_connectRemoteEvent(unreliable: boolean)
 	end
 
 	self._destroyingConnection = self._remoteEvent.Destroying:Connect(function()
+		self.destroying:fire()
 		self:destroy()
 	end)
 end

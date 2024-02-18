@@ -1,7 +1,10 @@
 local RunService = game:GetService("RunService")
 
+local Event = require(script.Parent.Parent.Event)
+
 type NetworkRequest = {
 	className: string,
+	destroying: Event.Self,
 	new: (name: string, parent: Instance, callback: (player: Player, ...any) -> (...any)?) -> NetworkRequest,
 	destroy: (self: NetworkRequest) -> (),
 	setCallback: (self: NetworkRequest, callback: (player: Player, ...any) -> (...any)?) -> (),
@@ -11,6 +14,7 @@ type NetworkRequest = {
 type _NetworkRequest = {
 	_name: string,
 	_parent: Instance,
+	_destroyingConnection: RBXScriptConnection?,
 	_remoteFunction: RemoteFunction?
 }
 
@@ -83,7 +87,8 @@ function NetworkRequest.new(name: string, parent: Instance, callback: (player: P
 		_name = name,
 		_parent = parent,
 		_destroyingConnection = nil,
-		_remoteFunction = nil
+		_remoteFunction = nil,
+		destroying = Event.new()
 	}, NetworkRequest)
 
 	self:_setupRemoteFunction()
@@ -105,6 +110,10 @@ function NetworkRequest:destroy()
 		self._remoteFunction:Destroy()
 	end
 	self._remoteFunction = nil
+	if self._destroying then
+		self._destroying:destroy()
+		self._destroying = nil
+	end
 end
 
 function NetworkRequest:_setupRemoteFunction(callback: (player: Player, ...any) -> (...any)?)
@@ -131,6 +140,7 @@ function NetworkRequest:_setupRemoteFunction(callback: (player: Player, ...any) 
 	end
 
 	self._destroyingConnection = self._remoteFunction.Destroying:Connect(function()
+		self.destroying:fire()
 		self:destroy()
 	end)
 end
