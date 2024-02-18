@@ -1,7 +1,11 @@
 local Types = require(script.Parent.Types)
 
-type EventConnection = Types.EventConnection
 type Event = Types.Event
+type EventConnection = Types.EventConnection
+
+type _EventConnection = Types.EventConnection & {
+	_event: Event
+}
 
 --[=[
 	@within EventConnection
@@ -35,17 +39,18 @@ export type Self = EventConnection
 	connection:disconnect()
 	```
 ]=]
-local EventConnection = {}
+local EventConnection: _EventConnection = {}
 EventConnection.__index = EventConnection
 EventConnection.className = "EventConnection"
 
 --[=[
 	@tag Static
+	@param event Event -- The event to connect to
 
 	Constructs a new `EventConnection` object
 
 	:::caution
-	Do not construct this object manually. Use `Event:Connect` instead.
+	Do not construct this object manually. Use `Event:connect` instead
 	:::
 ]=]
 function EventConnection.new(event: Event): EventConnection
