@@ -16,8 +16,8 @@ type NetworkValue = {
 type _NetworkValue = NetworkValue & {
 	_value: any?,
 	_playerValues: {[Player]: any},
-	_destroyingConnection: RBXScriptConnection?,
-	_networkEventConnection: EventConnection,
+	_destroyingConnection: EventConnection?,
+	_networkEventConnection: EventConnection?,
 	_networkEvent: NetworkEvent.Self,
 	_changed: Event.Self
 }
@@ -123,10 +123,17 @@ end
 	Deconstructs the `NetworkValue` object
 ]=]
 function NetworkValue:destroy()
+	if self.destroying then
+		self.destroying:fire()
+		task.defer(function()
+			self.destroying:destroy()
+			self.destroying = nil
+		end)
+	end
 	self._value = nil
 	self._playerValues = nil
 	if self._destroyingConnection then
-		self._destroyingConnection:Disconnect()
+		self._destroyingConnection:disconnect()
 		self._destroyingConnection = nil
 	end
 	if self._networkEventConnection then
@@ -140,10 +147,6 @@ function NetworkValue:destroy()
 	if self._changed then
 		self._changed:destroy()
 		self._changed = nil
-	end
-	if self.destroying then
-		self.destroying:destroy()
-		self.destroying = nil
 	end
 end
 
@@ -161,8 +164,7 @@ function NetworkValue:_connectNetworkEvent()
 	end
 
 	self._destroyingConnection = self._networkEvent.destroying:connect(function()
-		self.destroying:fire()
-		self:destroy()
+		task.defer(self.destroy, self)
 	end)
 end
 

@@ -132,6 +132,13 @@ end
 	Deconstructs the `NetworkEvent` object
 ]=]
 function NetworkEvent:destroy()
+	if self.destroying then
+		self.destroying:fire()
+		task.defer(function()
+			self.destroying:destroy()
+			self.destroying = nil
+		end)
+	end
 	self._name = nil
 	self._parent = nil
 	if self._event then
@@ -150,10 +157,6 @@ function NetworkEvent:destroy()
 		self._remoteEvent:Destroy()
 	end
 	self._remoteEvent = nil
-	if self.destroying then
-		self.destroying:destroy()
-		self.destroying = nil
-	end
 end
 
 function NetworkEvent:_connectRemoteEvent(unreliable: boolean)
@@ -186,8 +189,7 @@ function NetworkEvent:_connectRemoteEvent(unreliable: boolean)
 	end
 
 	self._destroyingConnection = self._remoteEvent.Destroying:Connect(function()
-		self.destroying:fire()
-		self:destroy()
+		task.defer(self.destroy, self)
 	end)
 end
 

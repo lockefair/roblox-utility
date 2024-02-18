@@ -107,6 +107,13 @@ end
 	Deconstructs the `NetworkRequest` object
 ]=]
 function NetworkRequest:destroy()
+	if self.destroying then
+		self.destroying:fire()
+		task.defer(function()
+			self.destroying:destroy()
+			self.destroying = nil
+		end)
+	end
 	self._name = nil
 	self._parent = nil
 	if self._destroyingConnection then
@@ -117,10 +124,6 @@ function NetworkRequest:destroy()
 		self._remoteFunction:Destroy()
 	end
 	self._remoteFunction = nil
-	if self._destroying then
-		self._destroying:destroy()
-		self._destroying = nil
-	end
 end
 
 function NetworkRequest:_setupRemoteFunction(callback: (player: Player, ...any) -> (...any)?)
@@ -147,8 +150,7 @@ function NetworkRequest:_setupRemoteFunction(callback: (player: Player, ...any) 
 	end
 
 	self._destroyingConnection = self._remoteFunction.Destroying:Connect(function()
-		self.destroying:fire()
-		self:destroy()
+		task.defer(self.destroy, self)
 	end)
 end
 
