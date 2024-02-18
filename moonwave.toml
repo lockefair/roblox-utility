@@ -2,7 +2,7 @@ gitRepoUrl = "https://github.com/lockefair/roblox-utility"
 gitSourceBranch = "main"
 
 [home]
-enabled = true
+enabled = false
 includeReadme = false
 
 [docusaurus]

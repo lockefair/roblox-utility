@@ -11,7 +11,6 @@ type NetworkRequest = {
 type _NetworkRequest = {
 	_name: string,
 	_parent: Instance,
-	_callback: (player: Player, ...any) -> (...any)?,
 	_remoteFunction: RemoteFunction?
 }
 
@@ -26,21 +25,22 @@ export type Self = NetworkRequest
 	@prop className string
 	@tag Static
 
-	Static property that defines the class name `NetworkRequest`.
+	Static property that defines the class name `NetworkRequest`
 ]=]
 
 --[=[
 	@class NetworkRequest
 
-	An object that wraps Roblox's `RemoteFunction`. It can be used on the client to request data from the server
-	without having to manage `RemoteFunction` lifecycles manually – initialization and deinitialization are handled for you.
+	An object that wraps Roblox's remote functions. It can be used to request data from the server and receive a response on the client
+	without having to manage remote function instance lifecycles manually – initialization and deinitialization are handled for you
 
 	:::note
-	Network requests are intended to be paired. A `NetworkRequest` instance should be initialized on the server first, then on the client,
-	otherwise an error will occur.
+	Network requests are intended to be paired. A `NetworkRequest` object should be initialized on the server first and then on the client,
+	otherwise, an error will occur. Attempting to call a method on a `NetworkRequest` after its server-side counterpart has been destroyed
+	will result in a warning
 
-	Any type of Roblox object such as an Enum, Instance, or others can be passed as a parameter when a `NetworkRequest` is invoked,
-	as well as Luau types such as numbers, strings, and booleans. `NetworkRequest` shares its limitations with Roblox's `RemoteFunction` class.
+	Any type of Roblox object such as an `Enum`, `Instance`, or others can be passed as a parameter when a `NetworkRequest` is fired,
+	as well as Luau types such as `number`, `string`, and `boolean`. `NetworkRequest` shares its limitations with Roblox's `RemoteFunction` class
 	:::
 
 	```lua
@@ -63,27 +63,26 @@ NetworkRequest.className = "NetworkRequest"
 
 --[=[
 	@tag Static
-
-	Constructs a new `NetworkRequest` object.
-
 	@param name string -- The name of the `NetworkRequest` instance which must match on the client and server
 	@param parent Instance -- The parent of the `NetworkRequest` instance which must match on the client and server
-	@param callback (player: Player, ...any) -> (...any)? -- The callback to be called when the request is invoked
+	@param callback (player: Player, ...any) -> (...any)? -- An optional callback to be called when the request is invoked
+
+	Constructs a new `NetworkRequest` object
 ]=]
 function NetworkRequest.new(name: string, parent: Instance, callback: (player: Player, ...any) -> (...any)?): NetworkRequest
-	assert(name ~= nil and type(name) == "string", "name must be a string")
-	assert(parent ~= nil and typeof(parent) == "Instance", "parent must be an Instance")
+	assert(name ~= nil and type(name) == "string", "Argument #1 must be a string")
+	assert(parent ~= nil and typeof(parent) == "Instance", "Argument #2 must be an Instance")
 	if callback then
 		if RunService:IsClient() then
-			error("Cannot set NetworkRequest callback on the client")
+			error("Cannot set NetworkRequest callback on the client", 2)
 		end
-		assert(typeof(callback) == "function", "callback must be a function")
+		assert(typeof(callback) == "function", "Argument #3 must be a function or nil")
 	end
 
 	local self = setmetatable({
 		_name = name,
 		_parent = parent,
-		_callback = callback,
+		_destroyingConnection = nil,
 		_remoteFunction = nil
 	}, NetworkRequest)
 
@@ -93,19 +92,22 @@ function NetworkRequest.new(name: string, parent: Instance, callback: (player: P
 end
 
 --[=[
-	Deconstructs the `NetworkRequest` object.
+	Deconstructs the `NetworkRequest` object
 ]=]
 function NetworkRequest:destroy()
 	self._name = nil
 	self._parent = nil
-	self._callback = nil
+	if self._destroyingConnection then
+		self._destroyingConnection:Disconnect()
+		self._destroyingConnection = nil
+	end
 	if RunService:IsServer() and self._remoteFunction then
 		self._remoteFunction:Destroy()
 	end
 	self._remoteFunction = nil
 end
 
-function NetworkRequest:_setupRemoteFunction()
+function NetworkRequest:_setupRemoteFunction(callback: (player: Player, ...any) -> (...any)?)
 	if RunService:IsServer() then
 		local remoteFunction = self._parent:FindFirstChild(self._name)
 		if remoteFunction ~= nil then
@@ -116,29 +118,31 @@ function NetworkRequest:_setupRemoteFunction()
 		remoteFunction.Name = self._name
 		remoteFunction.Parent = self._parent
 
-		remoteFunction.OnServerInvoke = self._callback
+		remoteFunction.OnServerInvoke = callback
 
 		self._remoteFunction = remoteFunction
 	else
-		local remoteFunction: RemoteFunction = self._parent:FindFirstChild(self._name)
+		local remoteFunction: RemoteFunction = self._parent:WaitForChild(self._name, 6)
 		if remoteFunction == nil then
 			error("NetworkRequest " .. self._name .. " not found in " .. self._parent:GetFullName() .. "- A NetworkRequest with matching properties should be initialized on the server first")
 		end
 
 		self._remoteFunction = remoteFunction
 	end
+
+	self._destroyingConnection = self._remoteFunction.Destroying:Connect(function()
+		self:destroy()
+	end)
 end
 
 --[=[
 	@server
-
-	Sets the callback for the `NetworkRequest` which is called when the request is invoked. The callback can
-	be set to nil.
-
 	@param callback (player: Player, ...any) -> (...any)? -- The callback to be called when the request is invoked
 
+	Sets the callback for the `NetworkRequest` which is called when the request is invoked. The callback can be set to nil to remove it
+
 	```lua
-	local serverRequest = NetworkRequest.new("MyNetworkRequest", workspace)
+	local serverRequest = NetworkRequest.new("MyNetworkRequest", ReplicatedStorage)
 	serverRequest:setCallback(function(player, value)
 		print("The client passed the value:", value)
 		return "Thank you, Client!"
@@ -146,30 +150,39 @@ end
 	```
 ]=]
 function NetworkRequest:setCallback(callback: (player: Player, ...any) -> (...any)?)
-	assert(callback ~= nil and typeof(callback) == "function", "Callback must be provided")
+	if self._remoteFunction == nil then
+		warn("NetworkRequest:setCallback() called on a destroyed NetworkRequest")
+		return
+	end
 
 	if RunService:IsClient() then
 		error("Cannot connect to NetworkRequest callback on the client")
 	end
 
-	self._callback = callback
+	assert(callback ~= nil and typeof(callback) == "function", "Callback must be provided")
+
 	self._remoteFunction.OnServerInvoke = callback
 end
 
 --[=[
 	@client
-
-	Invokes the `NetworkRequest` on the server and returns the response.
-
+	@yields
 	@param ... any -- The arguments to pass to the server
 
+	Invokes the `NetworkRequest` on the server and returns the response
+
 	```lua
-	local clientRequest = NetworkRequest.new("MyNetworkRequest", workspace)
+	local clientRequest = NetworkRequest.new("MyNetworkRequest", ReplicatedStorage)
 	local value = clientRequest:invoke()
 	print("The server responded with:", value)
 	```
 ]=]
 function NetworkRequest:invoke(...: any): ...any
+	if self._remoteFunction == nil then
+		warn("NetworkRequest:invoke() called on a destroyed NetworkRequest")
+		return
+	end
+
 	if RunService:IsServer() then
 		error("Cannot Invoke a NetworkRequest on the server")
 	end

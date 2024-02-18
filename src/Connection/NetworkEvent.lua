@@ -109,9 +109,9 @@ function NetworkEvent.new(name: string, parent: Instance, unreliable: boolean?):
 		_name = name,
 		_parent = parent,
 		_event = Event.new(),
-		_remoteEvent = nil,
 		_remoteEventConnection = nil,
-		_destroyingConnection = nil
+		_destroyingConnection = nil,
+		_remoteEvent = nil
 	}, NetworkEvent)
 
 	self:_connectRemoteEvent(unreliable)
