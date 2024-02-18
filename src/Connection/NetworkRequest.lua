@@ -33,6 +33,13 @@ export type Self = NetworkRequest
 ]=]
 
 --[=[
+	@within NetworkRequest
+	@prop destroying Event
+
+	An event that fires when the `NetworkRequest` is destroyed
+]=]
+
+--[=[
 	@class NetworkRequest
 
 	An object that wraps Roblox's remote functions. It can be used to request data from the server and receive a response on the client

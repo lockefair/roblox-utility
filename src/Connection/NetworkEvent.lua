@@ -56,6 +56,13 @@ export type Self = NetworkEvent
 ]=]
 
 --[=[
+	@within NetworkEvent
+	@prop destroying Event
+
+	An event that fires when the `NetworkEvent` is destroyed
+]=]
+
+--[=[
 	@class NetworkEvent
 
 	An object that wraps Roblox's remote events. It can be used to fire events between the server and client

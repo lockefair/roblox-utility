@@ -5,6 +5,7 @@ local NetworkEvent = require(script.Parent.NetworkEvent)
 
 type NetworkValue = {
 	className: string,
+	destroying: Event.Self,
 	new: (name: string, parent: Instance, value: any?) -> NetworkValue,
 	destroy: (self: NetworkValue) -> (),
 	connect: (self: NetworkValue, callback: (value: any?) -> ()) -> EventConnection,
@@ -50,6 +51,13 @@ export type Self = NetworkValue
 	@tag Static
 
 	Static property that defines the class name `NetworkValue`
+]=]
+
+--[=[
+	@within NetworkValue
+	@prop destroying Event
+
+	An event that fires when the `NetworkValue` is destroyed
 ]=]
 
 --[=[
@@ -102,7 +110,8 @@ function NetworkValue.new(name: string, parent: Instance, value: any?): NetworkV
 		_destroyingConnection = nil,
 		_networkEventConnection = nil,
 		_networkEvent = NetworkEvent.new(name, parent),
-		_changed = Event.new()
+		_changed = Event.new(),
+		destroying = Event.new()
 	}, NetworkValue)
 
 	self:_connectNetworkEvent()
@@ -132,6 +141,10 @@ function NetworkValue:destroy()
 		self._changed:destroy()
 		self._changed = nil
 	end
+	if self.destroying then
+		self.destroying:destroy()
+		self.destroying = nil
+	end
 end
 
 function NetworkValue:_connectNetworkEvent()
@@ -148,6 +161,7 @@ function NetworkValue:_connectNetworkEvent()
 	end
 
 	self._destroyingConnection = self._networkEvent.destroying:connect(function()
+		self.destroying:fire()
 		self:destroy()
 	end)
 end
