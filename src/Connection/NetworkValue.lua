@@ -183,6 +183,11 @@ end
 	```
 ]=]
 function NetworkValue:connect(callback: (value: any?, player: Player?) -> ()): EventConnection
+	if self._networkEvent == nil then
+		warn("NetworkValue:connect() called on a destroyed NetworkValue")
+		return nil
+	end
+
 	assert(callback ~= nil and type(callback) == "function", "Argument #1 must be a function")
 
 	return self._changed:connect(callback)
@@ -214,6 +219,11 @@ end
 	```
 ]=]
 function NetworkValue:getValue(player: Player?): any?
+	if self._networkEvent == nil then
+		warn("NetworkValue:getValue() called on a destroyed NetworkValue")
+		return
+	end
+
 	assert(player == nil or typeof(player) == "Instance" and player:IsA("Player"), "Argument #1 must be a Player or nil")
 
 	if RunService:IsClient() then
@@ -246,6 +256,11 @@ end
 	```
 ]=]
 function NetworkValue:setValue(value: any?, player: Player?)
+	if self._networkEvent == nil then
+		warn("NetworkValue:setValue() called on a destroyed NetworkValue")
+		return
+	end
+
 	if RunService:IsClient() then
 		error("NetworkValue:setValue() should only be called on the server", 2)
 	end
