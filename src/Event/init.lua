@@ -156,7 +156,7 @@ function Event:disconnect(eventConnection: EventConnection)
 end
 
 --[=[
-	@param ...any -- The values to pass to the event's callbacks
+	@param ... any -- The values to pass to the event's callbacks
 
 	Fires the event with the given arguments
 

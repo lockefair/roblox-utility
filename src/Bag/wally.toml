@@ -1,0 +1,10 @@
+[package]
+name = "lockefair/bag"
+description = "Object reference container for Roblox"
+version = "0.1.0"
+license = "MIT"
+authors = ["Joe Lunn <joe@noctua.dev>"]
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+[dependencies]

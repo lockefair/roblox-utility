@@ -60,9 +60,19 @@ end
 --[=[
 	@class Bag
 
-	A Bag is used to store and track objects that need to be cleaned up at some point. When the Bag is destroyed, all
-	objects within the Bag are also cleaned up. This class is inspired by Trove, Maid and Janitor but implements a camelCased
+	A Bag is used to store and track objects that need to be disposed of at some point. When the Bag is destroyed, all
+	objects within the Bag are also disposed of. This class is inspired by Trove, Maid and Janitor but implements a camelCased
 	interface and has a few differences in how it handles cleanup
+
+	```lua
+	local Bag = Bag.new()
+	local part = Instance.new("Part")
+	Bag:add(part)
+	Bag:add(part.Touched:Connect(function()
+		print("Touched!")
+	end))
+	Bag:destroy() -- 'part' is destroyed and the 'Touched' connection is disconnected
+	```
 ]=]
 local Bag: _Bag = {}
 Bag.__index = Bag
@@ -120,6 +130,10 @@ end
 	| `table` | `object:Destroy()` _or_ `object:Disconnect()` _or_ `object:destroy()` _or_ `object:disconnect()` |
 	| `table` with `disposeMethod` | `object:<disposeMethod>()` |
 
+	:::caution
+	An error will be thrown if a cleanup method cannot be found for the object type that was added to the Bag
+	:::
+
 	```lua
 	-- Adding a part to the Bag and then destroying the Bag will also destroy the part
 	local part = Instance.new("Part")
@@ -132,8 +146,7 @@ end
 	end)
 	Bag:destroy()
 
-	-- Adding a table to the Bag and then destroying the Bag will call the `destroy`, 'disconnect' or their PascalCased counterpart
-	-- methods on the table if they exist
+	-- Adding a table to the Bag and then destroying the Bag will call the `destroy`, 'disconnect' or their PascalCased counterpart methods on the table if they exist
 	local class = {}
 	function class:destroy()
 		print("Disposed!")
