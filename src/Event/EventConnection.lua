@@ -46,6 +46,7 @@ EventConnection.className = "EventConnection"
 --[=[
 	@tag Static
 	@param event Event -- The event to connect to
+	@return EventConnection -- An event connection that can be disconnected
 
 	Constructs a new `EventConnection` object
 

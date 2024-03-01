@@ -63,6 +63,7 @@ Event.className = "Event"
 
 --[=[
 	@tag Static
+	@return Event -- The `Event` object
 
 	Constructs a new `Event` object
 ]=]
@@ -84,16 +85,22 @@ end
 	Deconstructs the `Event` object
 ]=]
 function Event:destroy()
-	for _, connection in pairs(self._connections) do
-		connection:destroy()
+	if self._connections then
+		for _, connection in pairs(self._connections) do
+			connection:destroy()
+		end
+		self._connections = nil
 	end
-	self._connections = nil
 	self._callbacks = nil
 	self._value = nil
-	self._bindableEventConnection:Disconnect()
-	self._bindableEventConnection = nil
-	self._bindableEvent:Destroy()
-	self._bindableEvent = nil
+	if self._bindableEventConnection then
+		self._bindableEventConnection:Disconnect()
+		self._bindableEventConnection = nil
+	end
+	if self._bindableEvent then
+		self._bindableEvent:Destroy()
+		self._bindableEvent = nil
+	end
 end
 
 function Event:_connectBindableEvent()
@@ -107,6 +114,7 @@ end
 
 --[=[
 	@param callback (...any) -> () -- The callback to connect to the event
+	@return EventConnection -- An event connection that can be disconnected
 
 	Connects a callback to the event which is invoked when the event is fired
 
