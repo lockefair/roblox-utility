@@ -5,7 +5,7 @@ local Event = require(script.Parent.Parent.Event)
 
 type NetworkEvent = {
 	className: string,
-	destroying: Event.Self,
+	remoteEventDestroyed: Event.Self,
 	new: (name: string, parent: Instance) -> NetworkEvent,
 	destroy: (self: NetworkEvent) -> (),
 	connect: (self: NetworkEvent, callback: (...any) -> ()) -> EventConnection,
@@ -57,9 +57,9 @@ export type Self = NetworkEvent
 
 --[=[
 	@within NetworkEvent
-	@prop destroying Event
+	@prop remoteEventDestroyed Event
 
-	An event that fires when the `NetworkEvent` is destroyed
+	An event that fires when the underlying Roblox `RemoteEvent` instance is destroyed
 ]=]
 
 --[=[
@@ -71,7 +71,8 @@ export type Self = NetworkEvent
 	:::note
 	Network events are intended to be paired. A `NetworkEvent` object should be initialized on the server first and then on the client,
 	otherwise, an error will occur. Attempting to call a method on a `NetworkEvent` after its server-side counterpart has been destroyed
-	will result in a warning
+	will result in a warning. The server `NetworkEvent` object will destroy the underlying Roblox `RemoteEvent` instance when it is destroyed.
+	This can be monitored via the `NetworkEvent.remoteEventDestroyed` event
 
 	Any type of Roblox object such as an `Enum`, `Instance`, or others can be passed as a parameter when a `NetworkEvent` is fired,
 	as well as Luau types such as `number`, `string`, and `boolean`. `NetworkEvent` shares its limitations with Roblox's `RemoteEvent` class
@@ -94,70 +95,6 @@ export type Self = NetworkEvent
 local NetworkEvent: _NetworkEvent = {}
 NetworkEvent.__index = NetworkEvent
 NetworkEvent.className = "NetworkEvent"
-
---[=[
-	@tag Static
-	@param name string -- The name of the `NetworkEvent` instance which must match on the client and server
-	@param parent Instance -- The parent of the `NetworkEvent` instance which must match on the client and server
-	@param unreliable boolean? -- Whether or not the event should be unreliable. Defaults to `false`
-	@return NetworkEvent -- The `NetworkEvent` object
-
-	Constructs a new `NetworkEvent` object. The 'unreliable' parameter is defined by the server and ignored by the client
-]=]
-function NetworkEvent.new(name: string, parent: Instance, unreliable: boolean?): NetworkEvent
-	assert(name ~= nil and type(name) == "string", "Argument #1 must be a string")
-	assert(parent ~= nil and parent:IsA("Instance"), "Argument #2 must be an Instance")
-	assert(unreliable == nil or type(unreliable) == "boolean", "Argument #3 must be a boolean or nil")
-
-	if unreliable == nil then
-		unreliable = false
-	end
-
-	local self = setmetatable({
-		_name = name,
-		_parent = parent,
-		_event = Event.new(),
-		_remoteEventConnection = nil,
-		_destroyingConnection = nil,
-		_remoteEvent = nil,
-		destroying = Event.new()
-	}, NetworkEvent)
-
-	self:_connectRemoteEvent(unreliable)
-
-	return self
-end
-
---[=[
-	Deconstructs the `NetworkEvent` object
-]=]
-function NetworkEvent:destroy()
-	if self.destroying then
-		self.destroying:fire()
-		task.defer(function()
-			self.destroying:destroy()
-			self.destroying = nil
-		end)
-	end
-	self._name = nil
-	self._parent = nil
-	if self._event then
-		self._event:destroy()
-		self._event = nil
-	end
-	if self._remoteEventConnection then
-		self._remoteEventConnection:Disconnect()
-		self._remoteEventConnection = nil
-	end
-	if self._destroyingConnection then
-		self._destroyingConnection:Disconnect()
-		self._destroyingConnection = nil
-	end
-	if RunService:IsServer() and self._remoteEvent then
-		self._remoteEvent:Destroy()
-	end
-	self._remoteEvent = nil
-end
 
 function NetworkEvent:_connectRemoteEvent(unreliable: boolean)
 	if RunService:IsServer() then
@@ -189,12 +126,74 @@ function NetworkEvent:_connectRemoteEvent(unreliable: boolean)
 	end
 
 	self._destroyingConnection = self._remoteEvent.Destroying:Connect(function()
-		task.defer(self.destroy, self)
+		self.remoteEventDestroyed:fire()
 	end)
 end
 
 --[=[
+	@tag Static
+	@param name string -- The name of the `NetworkEvent` instance which must match on the client and server
+	@param parent Instance -- The parent of the `NetworkEvent` instance which must match on the client and server
+	@param unreliable boolean? -- Whether or not the event should be unreliable. Defaults to `false`
+	@return NetworkEvent -- The `NetworkEvent` object
+
+	Constructs a new `NetworkEvent` object. The 'unreliable' parameter is defined by the server and ignored by the client
+]=]
+function NetworkEvent.new(name: string, parent: Instance, unreliable: boolean?): NetworkEvent
+	assert(name ~= nil and type(name) == "string", "Argument #1 must be a string")
+	assert(parent ~= nil and parent:IsA("Instance"), "Argument #2 must be an Instance")
+	assert(unreliable == nil or type(unreliable) == "boolean", "Argument #3 must be a boolean or nil")
+
+	if unreliable == nil then
+		unreliable = false
+	end
+
+	local self = setmetatable({
+		_name = name,
+		_parent = parent,
+		_event = Event.new(),
+		_remoteEventConnection = nil,
+		_destroyingConnection = nil,
+		_remoteEvent = nil,
+		remoteEventDestroyed = Event.new()
+	}, NetworkEvent)
+
+	self:_connectRemoteEvent(unreliable)
+
+	return self
+end
+
+--[=[
+	Deconstructs the `NetworkEvent` object
+]=]
+function NetworkEvent:destroy()
+	self._name = nil
+	self._parent = nil
+	if self._event then
+		self._event:destroy()
+		self._event = nil
+	end
+	if self._remoteEventConnection then
+		self._remoteEventConnection:Disconnect()
+		self._remoteEventConnection = nil
+	end
+	if self._destroyingConnection then
+		self._destroyingConnection:Disconnect()
+		self._destroyingConnection = nil
+	end
+	if RunService:IsServer() and self._remoteEvent then
+		self._remoteEvent:Destroy()
+	end
+	self._remoteEvent = nil
+	if self.remoteEventDestroyed then
+		self.remoteEventDestroyed:destroy()
+		self.remoteEventDestroyed = nil
+	end
+end
+
+--[=[
 	@param callback (...any) -> () -- The callback to be invoked when the event is fired
+	@return EventConnection -- An event connection that can be disconnected
 
 	Connects a callback to the `NetworkEvent` which is invoked when the event is fired
 
@@ -245,7 +244,7 @@ function NetworkEvent:fireServer(...: any)
 		error("NetworkEvent:fireServer() called on the server", 2)
 	end
 
-	self._remoteEvent:fireServer(...)
+	self._remoteEvent:FireServer(...)
 end
 
 --[=[
@@ -271,7 +270,7 @@ function NetworkEvent:fireClient(player: Player, ...: any)
 
 	assert(player ~= nil and player:IsA("Player"), "Argument #1 must be a Player")
 
-	self._remoteEvent:fireClient(player, ...)
+	self._remoteEvent:FireClient(player, ...)
 end
 
 --[=[
@@ -301,7 +300,7 @@ function NetworkEvent:fireFilteredClients(predicate: (player: Player) -> boolean
 
 	for _, player in ipairs(Players:GetPlayers()) do
 		if predicate(player) then
-			self._remoteEvent:fireClient(player, ...)
+			self._remoteEvent:FireClient(player, ...)
 		end
 	end
 end
@@ -326,7 +325,7 @@ function NetworkEvent:fireAllClients(...: any)
 		error("NetworkEvent:fireAllClients() called on the client")
 	end
 
-	self._remoteEvent:fireAllClients(...)
+	self._remoteEvent:FireAllClients(...)
 end
 
 return table.freeze(NetworkEvent)

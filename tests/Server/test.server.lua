@@ -1,20 +1,22 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local NetworkEvent = require(ReplicatedStorage.Packages.Connection.NetworkEvent)
+local NetworkRequest = require(ReplicatedStorage.Packages.Connection.NetworkRequest)
 local NetworkValue = require(ReplicatedStorage.Packages.Connection.NetworkValue)
 
 game.Players.PlayerAdded:Connect(function(player)
-	-- local re = Instance.new("RemoteEvent")
-	-- re.Parent = ReplicatedStorage
-	--re:FireAllClients(4, 5, 6)
-	-- task.wait(1)
+	-- NetworkEvent
+	local networkEvent = NetworkEvent.new("NetworkEvent", ReplicatedStorage)
+	networkEvent:connect(function(player, ...)
+		print("The event fired and passed the values:", player, ...)
+	end)
+	networkEvent:fireAllClients("Hello from the server!")
 
-	--- NetworkEvent
-	-- local networkEvent = NetworkEvent.new("MyNetworkEvent", ReplicatedStorage)
-	-- networkEvent:fireAllClients(player, 1, 2, 3)
-	-- task.wait(1)
-	-- networkEvent:destroy()
+	-- NetworkRequest
+	local networkRequest = NetworkRequest.new("NetworkRequest", ReplicatedStorage)
+	networkRequest:setCallback(function(player)
+		return "Hello, client!"
+	end)
 
-	local networkValue = NetworkValue.new("MyNetworkValue", ReplicatedStorage, 1)
-	task.wait(2)
-	networkValue:destroy()
+	-- NetworkValue
+	local networkValue = NetworkValue.new("NetworkValue", ReplicatedStorage, 0)
 end)

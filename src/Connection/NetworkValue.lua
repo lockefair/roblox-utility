@@ -5,7 +5,7 @@ local NetworkEvent = require(script.Parent.NetworkEvent)
 
 type NetworkValue = {
 	className: string,
-	destroying: Event.Self,
+	remoteEventDestroyed: Event.Self,
 	new: (name: string, parent: Instance, value: any?) -> NetworkValue,
 	destroy: (self: NetworkValue) -> (),
 	connect: (self: NetworkValue, callback: (value: any?) -> ()) -> EventConnection,
@@ -55,9 +55,9 @@ export type Self = NetworkValue
 
 --[=[
 	@within NetworkValue
-	@prop destroying Event
+	@prop remoteEventDestroyed Event
 
-	An event that fires when the `NetworkValue` is destroyed
+	An event that fires when the underlying Roblox `RemoteEvent` instance is destroyed
 ]=]
 
 --[=[
@@ -69,7 +69,8 @@ export type Self = NetworkValue
 	:::note
 	Network requests are intended to be paired. A `NetworkValue` object should be initialized on the server first and then on the client,
 	otherwise, an error will occur. Attempting to call a method on a `NetworkValue` after its server-side counterpart has been destroyed
-	will result in a warning
+	will result in a warning. The server `NetworkValue` object will destroy the underlying Roblox `RemoteEvent` instance when it is destroyed.
+	This can be monitored via the `NetworkValue.remoteEventDestroyed` event
 
 	Any type of Roblox object such as an `Enum`, `Instance`, or others can be passed as a parameter when a `NetworkValue` is fired,
 	as well as Luau types such as `number`, `string`, and `boolean`. `NetworkValue` shares its limitations with Roblox's `RemoteEvent` class
@@ -92,11 +93,30 @@ local NetworkValue: _NetworkValue = {}
 NetworkValue.__index = NetworkValue
 NetworkValue.className = "NetworkValue"
 
+function NetworkValue:_connectNetworkEvent()
+	if RunService:IsServer() then
+		self._networkEventConnection = self._networkEvent:connect(function(player)
+			self._networkEvent:fireClient(player, self._value)
+		end)
+	else
+		self._networkEventConnection = self._networkEvent:connect(function(value)
+			self._value = value
+			self._changed:fire(value)
+		end)
+		self._networkEvent:fireServer()
+	end
+
+	self._destroyingConnection = self._networkEvent.remoteEventDestroyed:connect(function()
+		self.remoteEventDestroyed:fire()
+	end)
+end
+
 --[=[
 	@tag Static
 	@param name string -- The name of the `NetworkValue` instance which must match on the client and server
 	@param parent Instance -- The parent of the `NetworkValue` instance
 	@param value any? -- An optional initial value of the `NetworkValue` instance
+	@return NetworkValue -- The `NetworkValue` object
 
 	Constructs a new `NetworkValue` object
 ]=]
@@ -111,7 +131,7 @@ function NetworkValue.new(name: string, parent: Instance, value: any?): NetworkV
 		_networkEventConnection = nil,
 		_networkEvent = NetworkEvent.new(name, parent),
 		_changed = Event.new(),
-		destroying = Event.new()
+		remoteEventDestroyed = Event.new()
 	}, NetworkValue)
 
 	self:_connectNetworkEvent()
@@ -123,13 +143,6 @@ end
 	Deconstructs the `NetworkValue` object
 ]=]
 function NetworkValue:destroy()
-	if self.destroying then
-		self.destroying:fire()
-		task.defer(function()
-			self.destroying:destroy()
-			self.destroying = nil
-		end)
-	end
 	self._value = nil
 	self._playerValues = nil
 	if self._destroyingConnection then
@@ -148,28 +161,15 @@ function NetworkValue:destroy()
 		self._changed:destroy()
 		self._changed = nil
 	end
-end
-
-function NetworkValue:_connectNetworkEvent()
-	if RunService:IsServer() then
-		self._networkEventConnection = self._networkEvent:connect(function(player)
-			self._networkEvent:fireClient(player, self._value)
-		end)
-	else
-		self._networkEventConnection = self._networkEvent:connect(function(value)
-			self._value = value
-			self._changed:fire(value)
-		end)
-		self._networkEvent:fireServer()
+	if self.remoteEventDestroyed then
+		self.remoteEventDestroyed:destroy()
+		self.remoteEventDestroyed = nil
 	end
-
-	self._destroyingConnection = self._networkEvent.destroying:connect(function()
-		task.defer(self.destroy, self)
-	end)
 end
 
 --[=[
 	@param callback (value: any?, player: Player?) -> () -- The callback to be invoked when the `NetworkValue` object's value changes
+	@return EventConnection -- An event connection that can be disconnected
 
 	Connects a callback that's invoked when the `NetworkValue` object's value changes. If the `NetworkValue` object is on the server and
 	a player is specified, then that value has been set specifically for that player, otherwise, the shared value was set
@@ -195,6 +195,7 @@ end
 
 --[=[
 	@param player Player? -- An optional player to get the value for
+	@return any? -- The value of the `NetworkValue` object
 
 	Returns the value of the `NetworkValue` object. If called on the server and a player is specified the value for that specific player is returned
 
