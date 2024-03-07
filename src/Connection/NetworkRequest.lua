@@ -177,7 +177,7 @@ function NetworkRequest:setCallback(callback: (player: Player, ...any) -> (...an
 		error("Cannot connect to NetworkRequest callback on the client")
 	end
 
-	assert(callback ~= nil and typeof(callback) == "function", "Callback must be provided")
+	assert(callback == nil or typeof(callback) == "function", "Argument #1 must be a function or nil")
 
 	self._remoteFunction.OnServerInvoke = callback
 end
