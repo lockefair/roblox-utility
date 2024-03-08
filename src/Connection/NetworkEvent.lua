@@ -6,7 +6,7 @@ local Event = require(script.Parent.Parent.Event)
 type NetworkEvent = {
 	className: string,
 	remoteEventDestroyed: Event.Self,
-	new: (name: string, parent: Instance) -> NetworkEvent,
+	new: (name: string, parent: Instance, unreliable: boolean?) -> NetworkEvent,
 	destroy: (self: NetworkEvent) -> (),
 	connect: (self: NetworkEvent, callback: (...any) -> ()) -> EventConnection,
 	fireServer: (self: NetworkEvent, ...any) -> (),
