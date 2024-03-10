@@ -105,6 +105,7 @@ end
 
 function Event:_connectBindableEvent()
 	self._bindableEventConnection = self._bindableEvent.Event:Connect(function()
+		if not self._callbacks then return end
 		for _, connection in pairs(self._connections) do
 			local callback = self._callbacks[connection]
 			callback(table.unpack(self._value))

@@ -70,7 +70,7 @@ end
 ]=]
 function EventConnection:destroy()
 	self._event = nil
-	self.connected = nil
+	self.connected = false
 end
 
 --[=[
