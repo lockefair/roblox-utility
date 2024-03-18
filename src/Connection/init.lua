@@ -1,3 +1,25 @@
+local NetworkEvent = require(script.NetworkEvent)
+local NetworkRequest = require(script.NetworkRequest)
+local NetworkValue = require(script.NetworkValue)
+
+--[=[
+	@within Connection
+	@type NetworkEvent NetworkEvent
+]=]
+export type NetworkEvent = NetworkEvent.Self
+
+--[=[
+	@within Connection
+	@type NetworkRequest NetworkRequest
+]=]
+export type NetworkRequest = NetworkRequest.Self
+
+--[=[
+	@within Connection
+	@type NetworkValue NetworkValue
+]=]
+export type NetworkValue = NetworkValue.Self
+
 --[=[
 	@class Connection
 
@@ -17,9 +39,9 @@
 	```
 ]=]
 local Connection = {
-	NetworkEvent = require(script.NetworkEvent),
-	NetworkRequest = require(script.NetworkRequest),
-	NetworkValue = require(script.NetworkValue)
+	NetworkEvent = NetworkEvent,
+	NetworkRequest = NetworkRequest,
+	NetworkValue = NetworkValue
 }
 
 return table.freeze(Connection)
