@@ -1,6 +1,24 @@
+local Event = require(script.Parent.Event)
+
 local NetworkEvent = require(script.NetworkEvent)
 local NetworkRequest = require(script.NetworkRequest)
 local NetworkValue = require(script.NetworkValue)
+
+--[=[
+	@within Connection
+	@interface EventConnection
+	@field connected boolean
+	@field disconnect () -> ()
+
+	An interface that respresents a connection to an event. This `EventConnection` object can be used to disconnect a callback
+
+	```lua
+	print(connection.connected) -- true
+	connection:disconnect()
+	print(connection.connected) -- false
+	```
+]=]
+export type EventConnection = Event.EventConnection
 
 --[=[
 	@within Connection
