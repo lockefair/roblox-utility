@@ -3,14 +3,6 @@ local EventConnection = require(script.EventConnection)
 
 type Event = Types.Event
 
-type _Event = Types.Event & {
-	_bindableEvent: BindableEvent,
-	_bindableEventConnection: RBXScriptConnection?,
-	_connections: {[EventConnection]: EventConnection},
-	_callbacks: {[EventConnection]: (...any) -> ()},
-	_value: any?
-}
-
 --[=[
 	@within Event
 	@interface EventConnection
@@ -57,7 +49,7 @@ export type Self = Event
 	event:destroy()
 	```
 ]=]
-local Event: _Event = {}
+local Event = {}
 Event.__index = Event
 Event.className = "Event"
 

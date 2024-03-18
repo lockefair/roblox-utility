@@ -13,15 +13,6 @@ type NetworkValue = {
 	setValue: (self: NetworkValue, value: any?, player: Player?) -> ()
 }
 
-type _NetworkValue = NetworkValue & {
-	_value: any?,
-	_playerValues: {[Player]: any},
-	_destroyingConnection: EventConnection?,
-	_networkEventConnection: EventConnection?,
-	_networkEvent: NetworkEvent.Self,
-	_changed: Event.Self
-}
-
 --[=[
 	@within NetworkValue
 	@interface EventConnection
@@ -89,7 +80,7 @@ export type Self = NetworkValue
 	end)
 	```
 ]=]
-local NetworkValue: _NetworkValue = {}
+local NetworkValue = {}
 NetworkValue.__index = NetworkValue
 NetworkValue.className = "NetworkValue"
 
@@ -184,8 +175,7 @@ end
 ]=]
 function NetworkValue:connect(callback: (value: any?, player: Player?) -> ()): EventConnection
 	if self._networkEvent == nil then
-		warn("NetworkValue:connect() called on a destroyed NetworkValue")
-		return nil
+		error("NetworkValue:connect() called on a destroyed NetworkValue")
 	end
 
 	assert(callback ~= nil and type(callback) == "function", "Argument #1 must be a function")
@@ -221,8 +211,7 @@ end
 ]=]
 function NetworkValue:getValue(player: Player?): any?
 	if self._networkEvent == nil then
-		warn("NetworkValue:getValue() called on a destroyed NetworkValue")
-		return
+		error("NetworkValue:getValue() called on a destroyed NetworkValue")
 	end
 
 	assert(player == nil or typeof(player) == "Instance" and player:IsA("Player"), "Argument #1 must be a Player or nil")
@@ -258,8 +247,7 @@ end
 ]=]
 function NetworkValue:setValue(value: any?, player: Player?)
 	if self._networkEvent == nil then
-		warn("NetworkValue:setValue() called on a destroyed NetworkValue")
-		return
+		error("NetworkValue:setValue() called on a destroyed NetworkValue")
 	end
 
 	if RunService:IsClient() then

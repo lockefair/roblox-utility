@@ -15,15 +15,6 @@ type NetworkEvent = {
 	fireAllClients: (self: NetworkEvent, ...any) -> ()
 }
 
-type _NetworkEvent = NetworkEvent & {
-	_name: string,
-	_parent: Instance,
-	_event: Event.Self,
-	_remoteEventConnection: RBXScriptConnection?,
-	_destroyingConnection: RBXScriptConnection?,
-	_remoteEvent: RemoteEvent?
-}
-
 --[=[
 	@within NetworkEvent
 	@interface EventConnection
@@ -92,7 +83,7 @@ export type Self = NetworkEvent
 	serverEvent:fireClient(player, 1, 2, 3)
 	```
 ]=]
-local NetworkEvent: _NetworkEvent = {}
+local NetworkEvent = {}
 NetworkEvent.__index = NetworkEvent
 NetworkEvent.className = "NetworkEvent"
 
@@ -113,7 +104,7 @@ function NetworkEvent:_connectRemoteEvent(unreliable: boolean)
 
 		self._remoteEvent = remoteEvent
 	else
-		local remoteEvent: RemoteEvent | UnreliableRemoteEvent = self._parent:WaitForChild(self._name, 6)
+		local remoteEvent: RemoteEvent = self._parent:WaitForChild(self._name, 6)
 		if remoteEvent == nil then
 			error("NetworkEvent can't find a remote event with the name '" .. self._name .. "' in " .. self._parent:GetFullName() .. " - A NetworkEvent with matching properties should be initialized on the server first")
 		end
@@ -215,8 +206,7 @@ end
 ]=]
 function NetworkEvent:connect(callback: (...any) -> ()): EventConnection
 	if self._remoteEvent == nil then
-		warn("NetworkEvent:connect() called on a destroyed NetworkEvent")
-		return
+		error("NetworkEvent:connect() called on a destroyed NetworkEvent")
 	end
 
 	assert(callback ~= nil and type(callback) == "function", "Argument #1 must be a function")
@@ -236,8 +226,7 @@ end
 ]=]
 function NetworkEvent:fireServer(...: any)
 	if self._remoteEvent == nil then
-		warn("NetworkEvent:fireServer() called on a destroyed NetworkEvent")
-		return
+		error("NetworkEvent:fireServer() called on a destroyed NetworkEvent")
 	end
 
 	if RunService:IsServer() then
@@ -260,8 +249,7 @@ end
 ]=]
 function NetworkEvent:fireClient(player: Player, ...: any)
 	if self._remoteEvent == nil then
-		warn("NetworkEvent:fireClient() called on a destroyed NetworkEvent")
-		return
+		error("NetworkEvent:fireClient() called on a destroyed NetworkEvent")
 	end
 
 	if RunService:IsClient() then
@@ -288,8 +276,7 @@ end
 ]=]
 function NetworkEvent:fireFilteredClients(predicate: (player: Player) -> boolean, ...: any)
 	if self._remoteEvent == nil then
-		warn("NetworkEvent:fireFilteredClients() called on a destroyed NetworkEvent")
-		return
+		error("NetworkEvent:fireFilteredClients() called on a destroyed NetworkEvent")
 	end
 
 	if RunService:IsClient() then
@@ -317,8 +304,7 @@ end
 ]=]
 function NetworkEvent:fireAllClients(...: any)
 	if self._remoteEvent == nil then
-		warn("NetworkEvent:fireAllClients() called on a destroyed NetworkEvent")
-		return
+		error("NetworkEvent:fireAllClients() called on a destroyed NetworkEvent")
 	end
 
 	if RunService:IsClient() then

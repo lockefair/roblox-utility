@@ -3,10 +3,6 @@ local Types = require(script.Parent.Types)
 type Event = Types.Event
 type EventConnection = Types.EventConnection
 
-type _EventConnection = Types.EventConnection & {
-	_event: Event
-}
-
 --[=[
 	@within EventConnection
 	@type Self EventConnection
@@ -39,7 +35,7 @@ export type Self = EventConnection
 	connection:disconnect()
 	```
 ]=]
-local EventConnection: _EventConnection = {}
+local EventConnection = {}
 EventConnection.__index = EventConnection
 EventConnection.className = "EventConnection"
 

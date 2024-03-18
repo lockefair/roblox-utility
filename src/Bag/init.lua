@@ -8,11 +8,6 @@ type Bag = {
 	attach: (self: Bag, instance: Instance) -> ()
 }
 
-type _Bag = Bag & {
-	_objects: {{object: any, disposeMethod: string}},
-	_destroyingConnection: RBXScriptConnection?
-}
-
 --[=[
 	@within Bag
 	@type Self Bag
@@ -74,7 +69,7 @@ end
 	Bag:destroy() -- 'part' is destroyed and the 'Touched' connection is disconnected
 	```
 ]=]
-local Bag: _Bag = {}
+local Bag = {}
 Bag.__index = Bag
 Bag.className = "Bag"
 

@@ -11,13 +11,6 @@ type NetworkRequest = {
 	invoke: (self: NetworkRequest, ...any) -> ()
 }
 
-type _NetworkRequest = {
-	_name: string,
-	_parent: Instance,
-	_destroyingConnection: RBXScriptConnection?,
-	_remoteFunction: RemoteFunction?
-}
-
 --[=[
 	@within NetworkRequest
 	@type Self NetworkRequest
@@ -69,7 +62,7 @@ export type Self = NetworkRequest
 	print("The server responded with:", value) -- Hello, Client!
 	```
 ]=]
-local NetworkRequest: _NetworkRequest = {}
+local NetworkRequest = {}
 NetworkRequest.__index = NetworkRequest
 NetworkRequest.className = "NetworkRequest"
 
