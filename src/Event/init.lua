@@ -65,7 +65,7 @@ function Event.new(): Event
 		_bindableEventConnection = nil,
 		_connections = {},
 		_callbacks = {},
-		_value = nil
+		_values = {}
 	}, Event)
 
 	self:_connectBindableEvent()
@@ -77,22 +77,24 @@ end
 	Deconstructs the `Event` object
 ]=]
 function Event:destroy()
-	if self._connections then
-		for _, connection in pairs(self._connections) do
-			connection:destroy()
+	task.defer(function()
+		if self._connections then
+			for _, connection in pairs(self._connections) do
+				connection:destroy()
+			end
+			self._connections = nil
 		end
-		self._connections = nil
-	end
-	self._callbacks = nil
-	self._value = nil
-	if self._bindableEventConnection then
-		self._bindableEventConnection:Disconnect()
-		self._bindableEventConnection = nil
-	end
-	if self._bindableEvent then
-		self._bindableEvent:Destroy()
-		self._bindableEvent = nil
-	end
+		self._callbacks = nil
+		self._values = nil
+		if self._bindableEventConnection then
+			self._bindableEventConnection:Disconnect()
+			self._bindableEventConnection = nil
+		end
+		if self._bindableEvent then
+			self._bindableEvent:Destroy()
+			self._bindableEvent = nil
+		end
+	end)
 end
 
 function Event:_connectBindableEvent()
@@ -100,8 +102,9 @@ function Event:_connectBindableEvent()
 		if not self._callbacks then return end
 		for _, connection in pairs(self._connections) do
 			local callback = self._callbacks[connection]
-			callback(table.unpack(self._value))
+			callback(table.unpack(self._values[1]))
 		end
+		table.remove(self._values, 1)
 	end)
 end
 
@@ -158,12 +161,11 @@ end
 	```
 ]=]
 function Event:fire(...: any)
-	self._value = {...}
+	table.insert(self._values, {...})
 	self._bindableEvent:Fire()
 
-	-- Roblox's BindableEvent is used to hook into 'deferred events' behavior, If the same event is fired multiple times in the same frame
-	-- the newest value will be used when the event is fired at the end of the frame. In the future, Roblox plans to collapse events into
-	-- a single event call (https://devforum.roblox.com/t/beta-deferred-lua-event-handling/1240569)
+	-- Roblox's BindableEvent is used to hook into 'deferred events' behavior. In the future, Roblox plans to collapse events into
+	-- a single event call (https://devforum.roblox.com/t/beta-deferred-lua-event-handling/1240569), presumably when the value is the same
 end
 
 return table.freeze(Event)
