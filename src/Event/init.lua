@@ -99,12 +99,15 @@ end
 
 function Event:_connectBindableEvent()
 	self._bindableEventConnection = self._bindableEvent.Event:Connect(function()
-		if not self._callbacks then return end
-		for _, connection in pairs(self._connections) do
-			local callback = self._callbacks[connection]
-			callback(table.unpack(self._values[1]))
-		end
+		local value = table.unpack(self._values[1])
 		table.remove(self._values, 1)
+
+		if self._callbacks then
+			for _, connection in pairs(self._connections) do
+				local callback = self._callbacks[connection]
+				task.spawn(callback, value)
+			end
+		end
 	end)
 end
 
