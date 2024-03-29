@@ -1,6 +1,6 @@
 local RunService = game:GetService("RunService")
 
-local Event = require(script.Parent.Parent.Event)
+local Event = require(script.Parent.Packages.Event)
 local NetworkEvent = require(script.Parent.NetworkEvent)
 
 type NetworkValue = {

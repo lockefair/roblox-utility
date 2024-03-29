@@ -1,4 +1,4 @@
-local Event = require(script.Parent.Event)
+local Event = require(script.Packages.Event)
 
 local NetworkEvent = require(script.NetworkEvent)
 local NetworkRequest = require(script.NetworkRequest)
