@@ -7,6 +7,7 @@ type Zone = {
 	className: string,
 	playerAdded: Event.Self,
 	playerRemoved: Event.Self,
+	detected: Event.Self,
 	updateDelay: number,
 	_detectedCount: number,
 	_detectedHumanoidRootParts: {[Player]: BasePart},
@@ -47,17 +48,24 @@ local Zone = {}
 Zone.__index = Zone
 Zone.className = "Zone"
 
-function Zone:_monitorCharacters()
+function Zone:_monitorCharacters(player: Player)
+	self._characterAddedConnections[player] = player.CharacterAdded:Connect(function(character: Model)
+		table.insert(self._characters, character)
+	end)
+	self._characterRemovingConnections[player] = player.CharacterRemoving:Connect(function(character: Model)
+		local position = table.find(self._characters, character)
+		if position then
+			table.remove(self._characters, position)
+		end
+	end)
+end
+
+function Zone:_monitorPlayers()
+	for _, player in ipairs(Players:GetPlayers()) do
+		self:_monitorCharacters(player)
+	end
 	self._playerAddedConnection = Players.PlayerAdded:Connect(function(player)
-		self._characterAddedConnections[player] = player.CharacterAdded:Connect(function(character: Model)
-			table.insert(self._characters, character)
-		end)
-		self._characterRemovingConnections[player] = player.CharacterRemoving:Connect(function(character: Model)
-			local position = table.find(self._characters, character)
-			if position then
-				table.remove(self._characters, position)
-			end
-		end)
+		self:_monitorCharacters(player)
 	end)
 	self._playerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
 		self._characterAddedConnections[player]:Disconnect()
@@ -119,15 +127,19 @@ function Zone:_updateDetectedArray()
 	end
 
 	self:_addPlayersWhoJoinedZone(parts)
+
+	self.detected:fire()
 end
 
 function Zone.new(part: Part, updateDelay: number?, overlapParams: OverlapParams?): Zone
 	assert(typeof(part) == "Instance" and part:IsA("Part"), "Argument #1 must be a Part")
 	assert(updateDelay == nil or (typeof(updateDelay) == "number" and updateDelay > 0), "Argument #2 must be a positive number or nil")
+	assert(overlapParams == nil or (typeof(overlapParams) == "Instance" and overlapParams:IsA("OverlapParams")), "Argument #3 must be an OverlapParams or nil")
 
 	local self = setmetatable({
 		playerAdded = Event.new(),
 		playerRemoved = Event.new(),
+		detected = Event.new(),
 		updateDelay = updateDelay or DEFAULT_UPDATE_INTERVAL,
 		_detectedCount = 0,
 		_detectedHumanoidRootParts = {},
@@ -157,10 +169,7 @@ function Zone.new(part: Part, updateDelay: number?, overlapParams: OverlapParams
 		end
 	end)
 
-	for _, player in ipairs(Players:GetPlayers()) do
-		self:_trackCharacter(player)
-	end
-	self:_monitorCharacters()
+	self:_monitorPlayers()
 
 	return self
 end
@@ -170,6 +179,8 @@ function Zone:destroy()
 	self.playerAdded = nil
 	self.playerRemoved:destroy()
 	self.playerRemoved = nil
+	self.detected:destroy()
+	self.detected = nil
 	self.updateDelay = nil
 	self._detectedCount = nil
 	self._detectedHumanoidRootParts = nil
