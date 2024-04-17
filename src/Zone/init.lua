@@ -49,6 +49,9 @@ Zone.__index = Zone
 Zone.className = "Zone"
 
 function Zone:_monitorCharacters(player: Player)
+	if player.Character then
+		table.insert(self._characters, player.Character)
+	end
 	self._characterAddedConnections[player] = player.CharacterAdded:Connect(function(character: Model)
 		table.insert(self._characters, character)
 	end)
