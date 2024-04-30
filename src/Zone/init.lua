@@ -12,8 +12,7 @@ type Zone = {
 	_detectedCount: number,
 	_detectedHumanoidRootParts: {[Player]: BasePart},
 	_detectedPlayers: {[Player]: boolean},
-	_cframe: CFrame,
-	_size: Vector3,
+	_part: Part,
 	_characters: {BasePart},
 	_playerAddedConnection: RBXScriptConnection?,
 	_playerRemovingConnection: RBXScriptConnection?,
@@ -112,7 +111,7 @@ function Zone:_removePlayersWhoLeftZone(parts: {BasePart})
 
 			self._detectedCount -= 1
 			if self._detectedCount == 0 then
-				self._enableTracking = false
+				self:_stopTracking()
 			end
 		end
 	end
@@ -120,18 +119,36 @@ end
 
 function Zone:_updateDetectedArray()
 	self._overlapParams.FilterDescendantsInstances = self._characters
-	local parts = workspace:GetPartBoundsInBox(self._cframe, self._size, self._overlapParams)
+	local parts = workspace:GetPartsInPart(self._part, self._overlapParams)
 
 	self:_removePlayersWhoLeftZone(parts)
 
 	if #parts == 0 then
-		self._enableTracking = false
+		self:_stopTracking()
 		return
 	end
 
 	self:_addPlayersWhoJoinedZone(parts)
 
 	self.detected:fire()
+end
+
+function Zone:_startTracking()
+	local updateBuffer = 0
+	self._heartbeatConnection = RunService.Heartbeat:Connect(function(deltaTime: number)
+		if not self._enableTracking then return end
+		updateBuffer += deltaTime
+		if updateBuffer < self.updateDelay then return end
+		updateBuffer = 0
+		self:_updateDetectedArray()
+	end)
+end
+
+function Zone:_stopTracking()
+	if self._heartbeatConnection then
+		self._heartbeatConnection:Disconnect()
+		self._heartbeatConnection = nil
+	end
 end
 
 function Zone.new(part: Part, updateDelay: number?, overlapParams: OverlapParams?): Zone
@@ -147,8 +164,7 @@ function Zone.new(part: Part, updateDelay: number?, overlapParams: OverlapParams
 		_detectedCount = 0,
 		_detectedHumanoidRootParts = {},
 		_detectedPlayers = {},
-		_cframe = part:GetPivot(),
-		_size = part.Size,
+		_part = part,
 		_characters = {},
 		_playerAddedConnection = nil,
 		_playerRemovingConnection = nil,
@@ -163,9 +179,18 @@ function Zone.new(part: Part, updateDelay: number?, overlapParams: OverlapParams
 	self._overlapParams.FilterType = Enum.RaycastFilterType.Include
 	self._overlapParams.FilterDescendantsInstances = self._characters
 
+	local debounce = {}
 	self._touchConnection = part.Touched:Connect(function(otherPart: Part)
-		if getPlayerForHumanoidRootPart(otherPart) ~= nil then
-			self._enableTracking = true
+		local player = getPlayerForHumanoidRootPart(otherPart)
+		if player ~= nil and not debounce[player] then
+			debounce[player] = true
+			task.delay(0.1, function()
+				debounce[player] = nil
+			end)
+
+			if self._heartbeatConnection then return end
+
+			self:_startTracking()
 			if self.updateDelay > 0.1 then
 				task.delay(0.1, self._updateDetectedArray, self)
 			end
@@ -188,8 +213,7 @@ function Zone:destroy()
 	self._detectedCount = nil
 	self._detectedHumanoidRootParts = nil
 	self._detectedPlayers = nil
-	self._cframe = nil
-	self._size = nil
+	self._part = nil
 	self._characters = nil
 	self._playerAddedConnection:Disconnect()
 	self._playerAddedConnection = nil
@@ -214,21 +238,11 @@ function Zone:destroy()
 end
 
 function Zone:enable()
-	local updateBuffer = 0
-	self._heartbeatConnection = RunService.Heartbeat:Connect(function(deltaTime: number)
-		if not self._enableTracking then return end
-		updateBuffer += deltaTime
-		if updateBuffer < self.updateDelay then return end
-		updateBuffer = 0
-		self:_updateDetectedArray()
-	end)
+	self._enableTracking = true
 end
 
 function Zone:disable()
-	if self._heartbeatConnection then
-		self._heartbeatConnection:Disconnect()
-		self._heartbeatConnection = nil
-	end
+	self._enableTracking = false
 end
 
 function Zone:getDetectedPlayers(): {Player}
