@@ -31,7 +31,7 @@ export type Self = Event
 	@tag Static
 	@prop className string
 
-	Static property that defines the class name of the `NetworkEvent` object
+	Static property that defines the class name of the `Event` object
 ]=]
 
 --[=[
