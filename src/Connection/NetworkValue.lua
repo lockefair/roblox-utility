@@ -4,9 +4,16 @@ local Event = require(script.Parent.Parent.Event)
 local NetworkEvent = require(script.Parent.NetworkEvent)
 
 type NetworkValue = {
+	_value: any?,
+	_playerValues: {[Player]: any},
+	_destroyingConnection: Event.EventConnection?,
+	_networkEventConnection: Event.EventConnection?,
+	_networkEvent: NetworkEvent.Self,
+	_changed: Event.Self,
+	_firedInitialValue: boolean,
 	className: string,
 	remoteEventDestroyed: Event.Self,
-	new: (name: string, parent: Instance, value: any?) -> NetworkValue,
+	new: (name: string, parent: Instance, value: any?, player: Player?) -> NetworkValue,
 	destroy: (self: NetworkValue) -> (),
 	connect: (self: NetworkValue, callback: (value: any?) -> ()) -> EventConnection,
 	getValue: (self: NetworkValue, player: Player?) -> any?,
@@ -87,7 +94,13 @@ NetworkValue.className = "NetworkValue"
 function NetworkValue:_connectNetworkEvent()
 	if RunService:IsServer() then
 		self._networkEventConnection = self._networkEvent:connect(function(player)
-			self._networkEvent:fireClient(player, self._value)
+			if self._firedInitialValue then return end
+			local playerValue = self._playerValues[player]
+			if playerValue then
+				self._networkEvent:fireClient(player, playerValue)
+			else
+				self._networkEvent:fireClient(player, self._value)
+			end
 		end)
 	else
 		self._networkEventConnection = self._networkEvent:connect(function(value)
@@ -107,23 +120,34 @@ end
 	@param name string -- The name of the `NetworkValue` instance which must match on the client and server
 	@param parent Instance -- The parent of the `NetworkValue` instance
 	@param value any? -- An optional initial value of the `NetworkValue` instance
+	@param player Player? -- An optional player to set the value for
 	@return NetworkValue -- The `NetworkValue` object
 
-	Constructs a new `NetworkValue` object
+	Constructs a new `NetworkValue` object. The value and player parameters are ignored on the client. If a value is given for a specific player,
+	the same value will be set to nil for all other players
 ]=]
-function NetworkValue.new(name: string, parent: Instance, value: any?): NetworkValue
+function NetworkValue.new(name: string, parent: Instance, value: any?, player: Player?): NetworkValue
 	assert(name ~= nil and type(name) == "string", "Argument #1 must be a string")
 	assert(parent ~= nil and typeof(parent) == "Instance", "Argument #2 must be an Instance")
 
 	local self = setmetatable({
-		_value = value,
+		_value = nil,
 		_playerValues = {},
 		_destroyingConnection = nil,
 		_networkEventConnection = nil,
 		_networkEvent = NetworkEvent.new(name, parent),
 		_changed = Event.new(),
+		_firedInitialValue = false,
 		remoteEventDestroyed = Event.new()
 	}, NetworkValue)
+
+	if RunService:IsServer() then
+		if player then
+			self._playerValues[player] = value
+		else
+			self._value = value
+		end
+	end
 
 	self:_connectNetworkEvent()
 
@@ -152,6 +176,7 @@ function NetworkValue:destroy()
 		self._changed:destroy()
 		self._changed = nil
 	end
+	self._firedInitialValue = nil
 	if self.remoteEventDestroyed then
 		self.remoteEventDestroyed:destroy()
 		self.remoteEventDestroyed = nil
@@ -265,6 +290,10 @@ function NetworkValue:setValue(value: any?, player: Player?)
 		table.clear(self._playerValues)
 		self._networkEvent:fireAllClients(value)
 		self._changed:fire(value)
+	end
+
+	if not self._firedInitialValue then
+		self._firedInitialValue = true
 	end
 end
 
