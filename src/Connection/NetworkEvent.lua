@@ -87,7 +87,7 @@ local NetworkEvent = {}
 NetworkEvent.__index = NetworkEvent
 NetworkEvent.className = "NetworkEvent"
 
-function NetworkEvent:_connectRemoteEvent(unreliable: boolean)
+function NetworkEvent:_setupRemoteEvent(unreliable: boolean)
 	if RunService:IsServer() then
 		local remoteEvent = self._parent:FindFirstChild(self._name)
 		if remoteEvent ~= nil then
@@ -109,15 +109,17 @@ function NetworkEvent:_connectRemoteEvent(unreliable: boolean)
 			error("NetworkEvent can't find a remote event with the name '" .. self._name .. "' in " .. self._parent:GetFullName() .. " - A NetworkEvent with matching properties should be initialized on the server first")
 		end
 
-		self._remoteEventConnection = remoteEvent.OnClientEvent:Connect(function(...)
-			self._event:fire(...)
-		end)
-
 		self._remoteEvent = remoteEvent
 	end
 
 	self._destroyingConnection = self._remoteEvent.Destroying:Connect(function()
 		self.remoteEventDestroyed:fire()
+	end)
+end
+
+function NetworkEvent:_connectRemoteEvent()
+	self._remoteEventConnection = self._remoteEvent.OnClientEvent:Connect(function(...)
+		self._event:fire(...)
 	end)
 end
 
@@ -149,7 +151,7 @@ function NetworkEvent.new(name: string, parent: Instance, unreliable: boolean?):
 		remoteEventDestroyed = Event.new()
 	}, NetworkEvent)
 
-	self:_connectRemoteEvent(unreliable)
+	self:_setupRemoteEvent(unreliable)
 
 	return self
 end
@@ -211,7 +213,13 @@ function NetworkEvent:connect(callback: (...any) -> ()): EventConnection
 
 	assert(callback ~= nil and type(callback) == "function", "Argument #1 must be a function")
 
-	return self._event:connect(callback)
+	local connection = self._event:connect(callback)
+
+	if RunService:IsClient() and not self._remoteEventConnection then
+		self:_connectRemoteEvent()
+	end
+
+	return connection
 end
 
 --[=[

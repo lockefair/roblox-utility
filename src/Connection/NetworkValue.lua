@@ -147,9 +147,9 @@ function NetworkValue.new(name: string, parent: Instance, value: any?, player: P
 		else
 			self._value = value
 		end
-	end
 
-	self:_connectNetworkEvent()
+		self:_connectNetworkEvent()
+	end
 
 	return self
 end
@@ -205,7 +205,13 @@ function NetworkValue:connect(callback: (value: any?, player: Player?) -> ()): E
 
 	assert(callback ~= nil and type(callback) == "function", "Argument #1 must be a function")
 
-	return self._changed:connect(callback)
+	local connection = self._changed:connect(callback)
+
+	if RunService:IsClient() and not self._networkEventConnection then
+		self:_connectNetworkEvent()
+	end
+
+	return connection
 end
 
 --[=[
