@@ -68,8 +68,6 @@ function Event.new(): Event
 		_values = {}
 	}, Event)
 
-	self:_connectBindableEvent()
-
 	return self
 end
 
@@ -130,6 +128,10 @@ function Event:connect(callback: (...any) -> ()): EventConnection
 	self._connections[eventConnection] = eventConnection
 	self._callbacks[eventConnection] = callback
 
+	if not self._bindableEventConnection then
+		self:_connectBindableEvent()
+	end
+
 	return eventConnection
 end
 
@@ -162,6 +164,7 @@ end
 	```
 ]=]
 function Event:fire(...: any)
+	if not self._bindableEventConnection then return end
 	table.insert(self._values, {...})
 	self._bindableEvent:Fire()
 
