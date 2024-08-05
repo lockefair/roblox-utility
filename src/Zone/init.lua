@@ -30,6 +30,8 @@ type Zone = {
 	getDetectedHumanoidRootParts: (self: Zone) -> {[Player]: BasePart}
 }
 
+export type Self = Zone
+
 local DEFAULT_UPDATE_INTERVAL = 1
 
 local function getPlayerForHumanoidRootPart(humanoidRootPart: BasePart): Player?
@@ -43,7 +45,7 @@ local function getPlayerForHumanoidRootPart(humanoidRootPart: BasePart): Player?
 	return player
 end
 
-local Zone = {}
+local Zone = {} :: Zone
 Zone.__index = Zone
 Zone.className = "Zone"
 
@@ -179,24 +181,6 @@ function Zone.new(part: Part, updateDelay: number?, overlapParams: OverlapParams
 	self._overlapParams.FilterType = Enum.RaycastFilterType.Include
 	self._overlapParams.FilterDescendantsInstances = self._characters
 
-	local debounce = {}
-	self._touchConnection = part.Touched:Connect(function(otherPart: Part)
-		local player = getPlayerForHumanoidRootPart(otherPart)
-		if player ~= nil and not debounce[player] then
-			debounce[player] = true
-			task.delay(0.1, function()
-				debounce[player] = nil
-			end)
-
-			if self._heartbeatConnection then return end
-
-			self:_startTracking()
-			if self.updateDelay > 0.1 then
-				task.delay(0.1, self._updateDetectedArray, self)
-			end
-		end
-	end)
-
 	self:_monitorPlayers()
 
 	return self
@@ -238,11 +222,33 @@ function Zone:destroy()
 end
 
 function Zone:enable()
+	if self._enableTracking then return end
 	self._enableTracking = true
+
+	local debounce = {}
+	self._touchConnection = self._part.Touched:Connect(function(otherPart: Part)
+		local player = getPlayerForHumanoidRootPart(otherPart)
+		if player ~= nil and not debounce[player] then
+			debounce[player] = true
+			task.delay(0.1, function()
+				debounce[player] = nil
+			end)
+
+			if self._heartbeatConnection then return end
+
+			self:_startTracking()
+			if self.updateDelay > 0.1 then
+				task.delay(0.1, self._updateDetectedArray, self)
+			end
+		end
+	end)
 end
 
 function Zone:disable()
+	if not self._enableTracking then return end
 	self._enableTracking = false
+	self._touchConnection:Disconnect()
+	self._touchConnection = nil
 end
 
 function Zone:getDetectedPlayers(): {Player}
